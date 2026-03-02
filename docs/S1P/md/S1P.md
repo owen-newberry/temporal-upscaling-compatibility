@@ -34,7 +34,7 @@ Owen Newberry | ASE Capstone
 3. Four concrete software design patterns addressing these requirements
 4. Connections to software engineering design patterns (Strategy, Observer, etc.)
 5. Methodology for prototype implementation and evaluation (Sprint 2)
-6. Signifigance of Work and Future Applications
+6. Significance of Work and Future Applications
 
 ---
 
