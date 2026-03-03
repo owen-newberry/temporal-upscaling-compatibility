@@ -7,6 +7,12 @@
 
 ## 1. Fixed-Timestep Simulation → Motion Vector Stability & History Quality
 
+### What is this pattern?
+
+Fixed-Timestep Simulation decouples the game's physics/simulation tick from the render loop. Instead of advancing the game state once per rendered frame (which runs at variable speed), the simulation advances in fixed, equal-sized time increments (e.g., every 16.67 ms). A separate "render loop" runs as fast as the hardware allows, interpolating between the two most recent simulation states for smooth visuals. An accumulator tracks any leftover real time between simulation ticks so no time is lost or gained.
+
+The canonical implementation uses an accumulator: real elapsed time is added to the accumulator each frame, then the simulation is stepped forward in fixed increments until the accumulator is exhausted.
+
 ### Connection
 
 Fixed-timestep simulation produces deterministic, consistent per-frame motion, which directly improves motion vector accuracy and temporal history reuse in upscalers.
@@ -53,6 +59,12 @@ Fixed-timestep simulation produces deterministic, consistent per-frame motion, w
 
 ## 2. Single-Writer Motion Authority → Coherent Motion Vectors & Reduced GPU Overhead
 
+### What is this pattern?
+
+Single-Writer Motion Authority is an architectural rule: exactly one system owns and writes the final world-space transform (position, rotation, scale) for each entity per frame. No other system may modify that transform directly; anything that needs to influence movement submits a request or velocity to the authoritative system, which resolves all inputs and writes the result once.
+
+This is closely related to the ECS (Entity-Component-System) principle of clear data ownership, and to the "single writer principle" in data-oriented design. In practice it means having one "movement system" or "transform flush" step that runs last in the frame before render, rather than scattered `SetPosition()` calls spread across gameplay, animation, and physics code.
+
 ### Connection
 
 Centralizing transform and motion writes ensures that motion vectors are derived from a single, consistent state per entity, eliminating conflicts and reducing redundant motion-vector computation.
@@ -95,6 +107,12 @@ Centralizing transform and motion writes ensures that motion vectors are derived
 
 ## 3. Time-Based Effects/Animations → Consistent Visual Motion Under Variable Frame Rates
 
+### What is this pattern?
+
+Time-Based Effects/Animations is the practice of driving all visual changes — particle systems, shader animations, UI transitions, procedural effects — by elapsed real time (e.g., `sin(time * speed)`) rather than by a per-frame counter or tick index. The effect state at any moment is a pure function of wall-clock (or game-clock) time, not of how many frames have been rendered.
+
+This contrasts with "frame-based" animation where an effect advances by a fixed step each rendered frame regardless of how much time has passed. Time-based updates mean the visual result is identical whether the game runs at 30, 60, or 144 FPS, and remain correct when frame generation artificially increases the displayed frame count.
+
 ### Connection
 
 Time-based updates (using elapsed time rather than "per frame") keep visual motion consistent even when render resolution, upscaling, or frame generation changes effective frame pacing.
@@ -132,6 +150,12 @@ Time-based updates (using elapsed time rather than "per frame") keep visual moti
 ---
 
 ## 4. Bounded Workload Budgeting → Stable Frame Times & Better Temporal Coherence
+
+### What is this pattern?
+
+Bounded Workload Budgeting is a design strategy where expensive, variable-cost tasks (streaming, AI pathfinding, asset loading, LOD updates, garbage collection) are given a per-frame time budget and split into smaller slices that execute across multiple frames rather than all at once. Work that exceeds the budget is deferred to future frames. This is also called "time-slicing" or "amortized work spreading."
+
+Common implementations include job queues with a maximum execution time per frame, coroutine-based update loops that yield when a timer expires, and incremental algorithms (e.g., incremental GC, incremental BVH rebuilds). The goal is to smooth out CPU/GPU spikes so that each frame takes roughly the same amount of time to produce.
 
 ### Connection
 
