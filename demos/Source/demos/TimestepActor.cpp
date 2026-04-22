@@ -36,7 +36,6 @@ void ATimestepActor::BeginPlay()
 		Mesh->SetMaterial(0, DynMaterial);
 	}
 
-	FMotionLogger::Get().Init();
 	UE_LOG(LogTemp, Warning, TEXT("[TimestepActor] BeginPlay: %s | mode=%s"),
 		*GetName(), bFixedTimestep ? TEXT("Fixed") : TEXT("Variable"));
 }

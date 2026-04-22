@@ -30,6 +30,18 @@ void AMotionAuthorityActor::Tick(float DeltaTime)
 
 	if (!bAuthorityMode)
 	{
+		// Log a Dropped row for every input that was discarded this frame so the
+		// CSV fully represents every frame regardless of mid-session mode toggles.
+		for (const FMotionInput& Input : PendingInputs)
+		{
+			if (!IsValid(Input.Actor)) continue;
+			FMotionLogger::Get().LogRow(
+				GFrameCounter, GetWorld()->GetTimeSeconds(),
+				GetWorld()->GetMapName(),
+				Input.Actor->GetName(), TEXT("Dropped"),
+				Input.Actor->GetActorLocation(), 0.f);
+		}
+		FMotionLogger::Get().Flush();
 		PendingInputs.Reset();
 		return;
 	}

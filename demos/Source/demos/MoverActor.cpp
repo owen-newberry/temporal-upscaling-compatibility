@@ -41,11 +41,15 @@ void AMoverActor::BeginPlay()
 		*GetName(), *SpawnLocation.ToString());
 }
 
+void AMoverActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	FMotionLogger::Get().Flush();
+	Super::EndPlay(EndPlayReason);
+}
+
 void AMoverActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
-	TimeElapsed += DeltaTime;
 
 	// Use world time so phase is deterministic and not affected by BeginPlay order
 	const float WorldTime = GetWorld()->GetTimeSeconds();

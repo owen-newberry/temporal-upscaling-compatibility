@@ -37,7 +37,6 @@ void AWorkloadActor::BeginPlay()
 		Mesh->SetMaterial(0, DynMaterial);
 	}
 
-	FMotionLogger::Get().Init();
 	UE_LOG(LogTemp, Warning, TEXT("[WorkloadActor] BeginPlay: %s | mode=%s"),
 		*GetName(), bBudgeted ? TEXT("Budgeted") : TEXT("Unbudgeted"));
 }

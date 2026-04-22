@@ -34,7 +34,6 @@ void AMotionModelActor::BeginPlay()
 		Mesh->SetMaterial(0, DynMaterial);
 	}
 
-	FMotionLogger::Get().Init();
 	UE_LOG(LogTemp, Warning, TEXT("[MotionModelActor] BeginPlay: %s | mode=%s"),
 		*GetName(), bTimeBased ? TEXT("TimeBased") : TEXT("FrameBased"));
 }
