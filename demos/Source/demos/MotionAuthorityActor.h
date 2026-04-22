@@ -13,8 +13,7 @@ struct FMotionInput
 	GENERATED_BODY()
 
 	AActor* Actor = nullptr;
-	FVector Velocity = FVector::ZeroVector;
-	FVector Force    = FVector::ZeroVector;
+	FVector TargetLocation = FVector::ZeroVector;
 };
 
 UCLASS()
@@ -30,8 +29,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Motion Authority")
 	bool bAuthorityMode = true;
 
-	// Called by client actors each frame to register intended movement
-	void SubmitInput(AActor* Actor, FVector Velocity, FVector Force);
+	// Called by client actors each frame to register their desired position
+	void SubmitInput(AActor* Actor, FVector TargetLocation);
 
 protected:
 	virtual void BeginPlay() override;

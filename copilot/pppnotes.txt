@@ -1,0 +1,336 @@
+PPP Presentation Speaker Notes
+Slide 1: Title Slide
+What to say:
+
+"I'm investigating GPU-aware architecture patterns - specifically what makes games work well with modern upscaling tech like DLSS and FSR"
+Keep it brief, this is just the intro
+If asked about "temporal upscaling":
+
+Temporal upscaling uses data from previous frames to reconstruct higher-resolution images
+DLSS uses AI/neural networks, FSR uses hand-crafted algorithms
+Both need consistent frame-to-frame data or they break
+Slide 3: Problem Domain
+Key points to emphasize:
+
+This isn't theoretical - student projects actually break upscalers all the time
+The problem is lack of documented patterns, not lack of hardware capability
+AAA studios know this stuff but it's not in textbooks or academic papers
+If asked "Why does this happen?":
+
+Upscalers assume your code produces stable, predictable output each frame
+Frame-rate-coupled logic means simulation changes at different FPS
+Multi-writer systems create race conditions that vary frame-to-frame
+These create temporal discontinuities that upscalers can't handle
+If asked about specific artifacts:
+
+Ghosting = trailing images from previous frames not integrating correctly
+Smearing = motion data is inconsistent, upscaler interpolates incorrectly
+Stuttering = frame times vary wildly, breaking temporal assumptions
+Slide 4: Why It Matters
+Key message:
+
+There's a knowledge gap between industry and education
+Hardware vendors (Nvidia, AMD) document their APIs but assume you already know the software patterns
+This project bridges that gap with empirical validation
+If challenged on "Is this really a problem?":
+
+Point to any student game project using UE5 or Unity with DLSS enabled
+Most have visible artifacts because they don't know these patterns
+Even shipped indie games struggle with this
+If asked "Why can't students just read Nvidia docs?":
+
+Nvidia docs explain HOW to integrate DLSS, not how to structure your entire codebase
+The patterns (fixed-timestep, etc.) exist but aren't connected to "this is required for upscalers"
+Slide 5: The Solution
+Emphasize the two-part structure:
+
+Research paper establishes the "why" - how hardware changes affect software
+Code project demonstrates the "how" - implementing patterns in practice
+They reinforce each other: research informs implementation, implementation validates research
+If asked "Why not just do code?":
+
+Without research foundation, it's just "here's some patterns"
+Research provides context on WHY these patterns emerged (hardware constraints)
+Makes it defensible as an academic capstone, not just a coding exercise
+If asked about the three patterns:
+
+Fixed-timestep: Separates physics/game logic (60 or 120 Hz) from rendering (variable)
+Workload budgeting: AI gets X milliseconds per frame, no more, prevents spikes
+Temporal coherence: One system owns motion data, prevents conflicting updates
+Slide 6: Research Foundation
+Key scholarly angle:
+
+Not asking "are upscalers good?" - asking "how does hardware evolution reshape software engineering?"
+Focuses on Blackwell (RTX 50 series) because it doubles down on AI integration
+This is architectural analysis, not performance benchmarking
+If asked about methodology:
+
+Literature review of GPU architecture papers (Nvidia technical docs, academic papers on rendering)
+Case study analysis of how UE5 and Unity adapted their architectures
+Pattern extraction - identifying what changed in development workflows
+If asked "What's novel here?":
+
+Not claiming to invent patterns - they exist in AAA
+Novel contribution is CONNECTING hardware evolution to pattern adoption
+Plus empirical validation that students can actually use
+Slide 7: Research Areas
+GPU Evolution:
+
+Blackwell has dedicated tensor cores, ray tracing cores, AND traditional CUDA cores
+Ada Lovelace (RTX 40) started this, Blackwell expands it
+Hardware assumption shift: rendering is now AI-assisted, not purely rasterized
+Case Studies:
+
+UE5 Lumen = software ray tracing that works without RT cores (but benefits from them)
+UE5 Nanite = virtualized geometry, needs stable frame pacing
+Unity DOTS = data-oriented design for parallel processing
+All emerged in response to modern GPU capabilities
+Pattern Analysis:
+
+What did developers do BEFORE these GPUs? (frame-coupled logic was fine at 60 FPS)
+What changed? (variable refresh rates, AI upscaling requirements)
+How do pros handle it vs. students? (pros have established codebases, students build from scratch)
+Slides 8-13: Features 1-6
+For each feature, be ready to explain:
+
+Feature 1 (Fixed-Timestep):
+
+Game logic runs at fixed intervals (e.g., every 16.67ms for 60 Hz simulation)
+Rendering runs as fast as possible (could be 120 FPS, 144 FPS, variable)
+Interpolation smooths visual state between simulation ticks
+Why it matters: DLSS expects stable motion vectors, not ones that change based on frame rate
+Feature 2 (Workload Budgeting):
+
+AI gets a time budget (e.g., 3ms per frame)
+If pathfinding takes longer, it's time-sliced across multiple frames
+Prevents "AI thinks hard = frame drops to 15 FPS"
+Why it matters: Frame-time variance breaks temporal reconstruction
+Feature 3 (Temporal Coherence):
+
+One system writes motion data, no conflicts
+Effects use delta-time, not frame counts ("fade over 2 seconds" not "fade over 120 frames")
+Why it matters: Upscalers need frame N to be predictable based on frame N-1
+Feature 4 (Performance Measurement):
+
+Not just average FPS - need 1% lows, 0.1% lows (worst-case performance)
+Frame-time variance is critical metric
+Memory tracking because allocation spikes cause frame hitches
+Why it matters: Can't validate patterns without measurements
+Feature 5 (DLSS/FSR):
+
+Integrating the actual SDK, not just theory
+Testing patterns with upscaling ENABLED to see if they actually work
+Why it matters: Proves the patterns help in practice
+Feature 6 (Game Prototype):
+
+Need realistic stress-test environment
+AI provides variable workload
+Environmental effects test temporal stability
+Why it matters: Academic exercise without realistic context isn't useful
+Slide 14-15: Development Roadmap (Sprint 1)
+Key message: Research comes first
+
+Paper must be complete before code starts
+Can't implement patterns without understanding WHY they exist
+Code prep during Sprint 1 is minimal - just engine selection and setup
+If asked "Why 4 weeks for a paper?":
+
+Week 1: Literature review is foundational
+Week 2: Case studies require deep-diving into engine architecture docs
+Week 3: Blackwell analysis needs technical documentation review
+Week 4: Writing, revision, formatting - this is a research paper, not a blog post
+If asked about engine selection:
+
+Depends on research findings
+Unreal has better DLSS integration but steeper learning curve
+Unity has ECS/DOTS which aligns with data-oriented patterns
+Will decide based on which better demonstrates the patterns
+Slide 16: Development Roadmap (Sprint 2)
+Phase 1 (Weeks 1-3): Core Pattern Implementation
+
+This is where the three patterns get built
+Start with environment and movement to have something to test
+Implement patterns incrementally, measure as you go
+Phase 2 (Weeks 4-5): DLSS/FSR Integration
+
+This is the validation phase
+Patterns are already working, now test them with upscaling
+If artifacts appear, patterns need refinement
+Phase 3 (Week 6): Documentation
+
+Generate performance graphs showing pattern impact
+Write implementation guide so others can use this
+Architecture diagrams for portfolio/presentation
+If asked "Is 6 weeks enough?":
+
+Scope is intentionally limited: one environment, one AI entity
+Not building a full game, building a test bed
+Patterns are well-documented in industry, implementation is understood
+Risk mitigation: research paper can stand alone if code faces delays
+Slide 17: Technical Architecture
+Be ready to explain the diagram:
+
+Fixed-timestep game loop runs simulation
+Player and AI systems feed into workload budgeter
+Budgeter ensures AI doesn't blow the frame-time budget
+Motion system has single-writer authority (temporal coherence)
+Everything connects to show how patterns interact
+If asked "Why this architecture?":
+
+Separates concerns: simulation vs. rendering
+Prevents common pitfall of tightly-coupled systems
+Matches how AAA engines structure their game loops
+Data flows one direction, no circular dependencies
+Slide 18: Validation Methodology
+Key change from earlier plan:
+
+NOT building baseline + optimized versions
+Applying research findings directly
+Measuring whether patterns meet target metrics
+If asked "How do you know the patterns work?":
+
+Measuring frame-time variance (should be <5ms std dev)
+Checking motion vector stability (>95% coherent)
+Visual inspection with DLSS/FSR enabled (minimal artifacts)
+Comparing against established metrics from shipped games
+Slide 19: Testing Strategy
+Performance Testing:
+
+Frame-time consistency = all frames take similar time to render
+1% lows = worst 1% of frames, shows edge cases
+CPU/GPU utilization = making sure not bottlenecked
+Visual Quality:
+
+DLSS/FSR artifacts are subjective but recognizable
+Motion vectors can be visualized in-engine
+Screenshot comparisons show before/after
+Stress Testing:
+
+Variable AI workload = sometimes pathfinding, sometimes idle
+Environmental effects = particles, lighting changes
+Peak load = everything happening at once
+Slide 20: Success Metrics
+Frame-time variance <5ms:
+
+Consistent frame pacing is critical for upscalers
+<5ms std dev means frames are predictable
+Motion vector stability >95%:
+
+Most frames have coherent motion data
+Upscalers can interpolate correctly
+DLSS/FSR quality:
+
+Minimal ghosting means temporal data is stable
+"Minimal" is qualitative but recognizable
+1% low FPS within 10% of average:
+
+Worst-case performance isn't dramatically worse
+Indicates stable workload management
+If challenged on these metrics:
+
+These are based on shipped game standards
+Not arbitrary - they reflect industry expectations
+Research will cite sources for these targets
+Slide 21: Expected Deliverables
+End of Sprint 1:
+
+Complete research paper (primary deliverable)
+Engine installed (preparation for Sprint 2)
+Architecture planned (informed by research)
+End of Sprint 2:
+
+Working prototype (demonstrates patterns)
+Performance analysis (validates patterns work)
+Implementation guide (educational resource)
+Architecture diagrams (documentation)
+Presentation materials (this PPP plus final presentation)
+If asked about deliverable quality:
+
+Research paper: academic standards, citations, peer-reviewed approach
+Prototype: functional, not polished - this isn't a shipping game
+Documentation: clear enough for another student to follow
+Slide 22: Why This Matters (Academic + Professional)
+Academic Contribution:
+
+Bridges hardware and software (computer architecture + software engineering)
+Reproducible methodology (others can validate)
+Educational resource (fills gap in curriculum)
+Professional Relevance:
+
+Directly applicable skills for game dev career
+Understanding hardware assumptions makes you better developer
+Portfolio piece shows research + implementation
+If asked "Who's the audience?":
+
+Primary: student/indie developers trying to use DLSS/FSR
+Secondary: educators teaching game development
+Tertiary: professionals curious about pattern validation
+Slide 23: Challenges & Mitigations
+DLSS/FSR SDK complexity:
+
+These are professional-grade SDKs, not student-friendly
+Mitigation: thorough documentation review, focus on one engine
+UE5 has better DLSS plugin, reduces integration complexity
+Performance measurement accuracy:
+
+Built-in profilers can be misleading
+Mitigation: use established tools (Unreal Insights, Unity Profiler)
+Multiple test runs to account for variance
+Scope creep:
+
+Easy to say "let's add multiplayer, more enemies, bigger maps"
+Mitigation: strict feature list, one room/one entity maximum
+Remember: this validates patterns, not builds a game
+Time constraints:
+
+10 weeks total is tight
+Mitigation: research-first approach means paper can stand alone
+Code is validation, not the entire contribution
+General Q&A Preparation
+"Why not just use Unreal/Unity's built-in systems?"
+
+Engines provide tools, not architectural guidance
+You can use UE5 and still write terrible temporal reconstruction code
+This project shows HOW to use those tools correctly
+"Has this been done before?"
+
+AAA studios do this, but don't publish their methods
+Academic papers on upscaling focus on algorithms, not software engineering
+This fills the gap: practical patterns for developers
+"What if your patterns don't work?"
+
+Research paper documents WHY they should work (theoretical foundation)
+If implementation fails, that's still a valid finding
+Can analyze what went wrong and why
+"Why these three patterns specifically?"
+
+They're the most commonly cited in professional talks (GDC, Unreal Fest)
+They address the three main upscaler requirements (stable timing, predictable workload, coherent motion)
+They're implementable in a 6-week timeframe
+"What GPU are you testing on?"
+
+Consumer-grade GPU (RTX 30 or 40 series most likely)
+Don't need Blackwell hardware to implement patterns
+Research covers Blackwell architecture, code validates patterns
+"How do you measure 'minimal ghosting'?"
+
+Side-by-side screenshot comparisons
+Visual inspection (subjective but standard in industry)
+Can also measure temporal variance in rendered output programmatically
+"What if you can't get DLSS/FSR working?"
+
+Can fall back to validating patterns without upscaling
+Measure frame-time stability and motion coherence directly
+Not ideal but still demonstrates pattern effectiveness
+Key Points to Project Confidence
+You know the problem is real - student projects break upscalers constantly
+You understand the technical depth - temporal reconstruction, motion vectors, frame-time budgets
+You have a defensible scope - two deliverables, clear timeline, realistic limitations
+You know the fallback plan - paper can stand alone, patterns can be validated without upscalers if needed
+You understand this fills a gap - industry knows this, academia doesn't teach it, you're bridging that
+Tone to maintain:
+
+Confident but not arrogant ("This is a known problem in the industry")
+Realistic about scope ("This validates patterns, doesn't invent new ones")
+Clear on contribution ("Empirical validation for educational purposes")
+Prepared for challenges ("Here's how I'll handle that")

@@ -1,6 +1,8 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "MotionAuthorityActor.h"
+#include "MotionLogger.h"
+#include "Engine/Engine.h"
 
 AMotionAuthorityActor::AMotionAuthorityActor()
 {
@@ -12,14 +14,13 @@ void AMotionAuthorityActor::BeginPlay()
 	Super::BeginPlay();
 }
 
-void AMotionAuthorityActor::SubmitInput(AActor* Actor, FVector Velocity, FVector Force)
+void AMotionAuthorityActor::SubmitInput(AActor* Actor, FVector TargetLocation)
 {
 	if (!IsValid(Actor)) return;
 
 	FMotionInput Input;
-	Input.Actor    = Actor;
-	Input.Velocity = Velocity;
-	Input.Force    = Force;
+	Input.Actor          = Actor;
+	Input.TargetLocation = TargetLocation;
 	PendingInputs.Add(Input);
 }
 
@@ -37,23 +38,16 @@ void AMotionAuthorityActor::Tick(float DeltaTime)
 	{
 		if (!IsValid(Input.Actor)) continue;
 
-		const FVector OldPos       = Input.Actor->GetActorLocation();
-		const FVector FrameDelta   = (Input.Velocity + Input.Force) * DeltaTime;
-		const FVector NewPos       = OldPos + FrameDelta;
+		const FVector OldPos     = Input.Actor->GetActorLocation();
+		const FVector FrameDelta = Input.TargetLocation - OldPos;
 
-		Input.Actor->SetActorLocation(NewPos);
-
-		UE_LOG(LogTemp, Verbose, TEXT("[MotionAuthority] %s | %s -> %s | delta %.2f cm"),
-			*Input.Actor->GetName(),
-			*OldPos.ToString(),
-			*NewPos.ToString(),
-			FrameDelta.Size());
+		Input.Actor->SetActorLocation(Input.TargetLocation);
 
 		// Jitter detection: flag large frame-to-frame delta changes
 		if (const FVector* PrevDelta = LastDeltas.Find(Input.Actor))
 		{
 			const float Diff = (FrameDelta - *PrevDelta).Size();
-			if (Diff > 50.0f) // threshold in cm
+			if (Diff > 50.0f)
 			{
 				UE_LOG(LogTemp, Warning,
 					TEXT("[MotionAuthority] JITTER on %s: delta change = %.2f cm"),
@@ -62,8 +56,23 @@ void AMotionAuthorityActor::Tick(float DeltaTime)
 		}
 
 		LastDeltas.Add(Input.Actor, FrameDelta);
+
+		FMotionLogger::Get().LogRow(
+			GFrameCounter, GetWorld()->GetTimeSeconds(),
+			Input.Actor->GetName(), TEXT("Authority"),
+			Input.TargetLocation, FrameDelta.Size());
+
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(
+				(uint64)Input.Actor->GetUniqueID(), 0.f, FColor::Green,
+				FString::Printf(TEXT("[Authority] %s | %s"), *Input.Actor->GetName(), *Input.TargetLocation.ToString())
+			);
+		}
 	}
 
 	PendingInputs.Reset();
+
+	FMotionLogger::Get().Flush();
 }
 

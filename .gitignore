@@ -1,6 +1,17 @@
 # macOS
 .DS_Store
 
+# Python virtual environment
+.venv/
+
+# Analysis outputs (generated, not source)
+analysis/output/
+analysis/test_capture.csv
+
+# UE5 VS config and upgrade log
+demos/.vsconfig
+demos/UpgradeLog.htm
+
 # Unreal Engine generated directories (safe to delete, regenerated on build)
 demos/Binaries/
 demos/DerivedDataCache/

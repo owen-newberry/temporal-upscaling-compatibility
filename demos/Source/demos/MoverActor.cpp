@@ -2,6 +2,7 @@
 
 #include "MoverActor.h"
 #include "MotionAuthorityActor.h"
+#include "MotionLogger.h"
 #include "Engine/Engine.h"
 
 AMoverActor::AMoverActor()
@@ -24,41 +25,67 @@ AMoverActor::AMoverActor()
 void AMoverActor::BeginPlay()
 {
 	Super::BeginPlay();
-	UE_LOG(LogTemp, Error, TEXT("[MoverActor] BeginPlay fired: %s"), *GetName());
-	if (GEngine)
+
+	SpawnLocation = GetActorLocation();
+
+	// Create a dynamic material instance so we can change color at runtime
+	UMaterial* BaseMat = Cast<UMaterial>(StaticLoadObject(
+		UMaterial::StaticClass(), nullptr, TEXT("/Engine/BasicShapes/BasicShapeMaterial")));
+	if (BaseMat)
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red,
-			FString::Printf(TEXT("MoverActor SPAWNED: %s"), *GetName()));
+		DynMaterial = UMaterialInstanceDynamic::Create(BaseMat, this);
+		Mesh->SetMaterial(0, DynMaterial);
 	}
+
+	UE_LOG(LogTemp, Warning, TEXT("[MoverActor] BeginPlay: %s | spawn %s"),
+		*GetName(), *SpawnLocation.ToString());
+
+	FMotionLogger::Get().Init();
 }
 
 void AMoverActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	TimeElapsed += DeltaTime;
+
+	// Oscillate left/right along X around spawn position
+	const FVector DesiredPos = SpawnLocation + FVector(
+		Amplitude * FMath::Sin(2.f * PI * Frequency * TimeElapsed), 0.f, 0.f);
+
 	const bool bUseAuthority = IsValid(AuthorityManager) && AuthorityManager->bAuthorityMode;
+
+	// Green = authority mode (good), Red = direct mode (bad)
+	if (DynMaterial)
+	{
+		const FLinearColor ModeColor = bUseAuthority
+			? FLinearColor(0.f, 1.f, 0.f)
+			: FLinearColor(1.f, 0.f, 0.f);
+		DynMaterial->SetVectorParameterValue(TEXT("Color"), ModeColor);
+	}
+
+	const FVector PrevPos    = GetActorLocation();
+	const float   FrameDelta = (DesiredPos - PrevPos).Size();
 
 	if (bUseAuthority)
 	{
-		// Authority mode: submit inputs only — do NOT modify transform here
-		AuthorityManager->SubmitInput(this, MoveVelocity, MoveForce);
+		// Authority mode: submit target position — do NOT modify transform here
+		AuthorityManager->SubmitInput(this, DesiredPos);
 	}
 	else
 	{
 		// Direct mode: actor moves itself
-		const FVector Delta = (MoveVelocity + MoveForce) * DeltaTime;
-		AddActorWorldOffset(Delta);
+		SetActorLocation(DesiredPos);
 
-		UE_LOG(LogTemp, Error, TEXT("[MoverActor] TICK %s | pos %s | delta %.2f cm"),
-			*GetName(),
-			*GetActorLocation().ToString(),
-			Delta.Size());
+		FMotionLogger::Get().LogRow(
+			GFrameCounter, GetWorld()->GetTimeSeconds(),
+			GetName(), TEXT("Direct"), DesiredPos, FrameDelta);
 
 		if (GEngine)
 		{
 			GEngine->AddOnScreenDebugMessage(
-				(uint64)GetUniqueID(), 0.f, FColor::Green,
-				FString::Printf(TEXT("[MoverActor] %s | %s"), *GetName(), *GetActorLocation().ToString())
+				(uint64)GetUniqueID(), 0.f, FColor::Red,
+				FString::Printf(TEXT("[Direct] %s | %s"), *GetName(), *DesiredPos.ToString())
 			);
 		}
 	}

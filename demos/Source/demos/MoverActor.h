@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Components/StaticMeshComponent.h"
+#include "Materials/MaterialInstanceDynamic.h"
 #include "MoverActor.generated.h"
 
 class AMotionAuthorityActor;
@@ -24,17 +25,22 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Motion Authority")
 	AMotionAuthorityActor* AuthorityManager;
 
-	// Velocity submitted to the manager (or applied directly)
-	UPROPERTY(EditAnywhere, Category = "Motion Authority")
-	FVector MoveVelocity = FVector(100.f, 0.f, 0.f);
+	// Half the travel distance in cm
+	UPROPERTY(EditAnywhere, Category = "Motion")
+	float Amplitude = 200.f;
 
-	// Additional force submitted each frame
-	UPROPERTY(EditAnywhere, Category = "Motion Authority")
-	FVector MoveForce = FVector::ZeroVector;
+	// Oscillations per second
+	UPROPERTY(EditAnywhere, Category = "Motion")
+	float Frequency = 0.5f;
 
 protected:
 	virtual void BeginPlay() override;
 
 public:
 	virtual void Tick(float DeltaTime) override;
+
+private:
+	FVector SpawnLocation;
+	float TimeElapsed = 0.f;
+	UMaterialInstanceDynamic* DynMaterial = nullptr;
 };
