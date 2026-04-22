@@ -22,7 +22,7 @@ void FMotionLogger::Init()
 
 	IFileManager::Get().MakeDirectory(*LogDir, true);
 
-	const FString Header = TEXT("Frame,TimeSeconds,LevelName,ActorName,Mode,PosX,PosY,PosZ,FrameDeltaCm\n");
+	const FString Header = TEXT("Frame,TimeSeconds,LevelName,ActorName,Mode,PosX,PosY,PosZ,FrameDeltaCm,PositionErrorCm\n");
 	FFileHelper::SaveStringToFile(Header, *FilePath,
 		FFileHelper::EEncodingOptions::AutoDetect,
 		&IFileManager::Get(), FILEWRITE_EvenIfReadOnly);
@@ -46,7 +46,7 @@ void FMotionLogger::Reset()
 
 void FMotionLogger::LogRow(int32 Frame, float TimeSeconds, const FString& LevelName,
                            const FString& ActorName, const FString& Mode,
-                           FVector Position, float FrameDeltaCm)
+                           FVector Position, float FrameDeltaCm, float PositionErrorCm)
 {
 	if (!bInitialized) return;
 
@@ -63,9 +63,14 @@ void FMotionLogger::LogRow(int32 Frame, float TimeSeconds, const FString& LevelN
 	FString SafeActor = ActorName;
 	SafeActor.ReplaceInline(TEXT(","), TEXT(";"));
 
-	Buffer.Add(FString::Printf(TEXT("%d,%.4f,%s,%s,%s,%.2f,%.2f,%.2f,%.4f\n"),
+	// PositionErrorCm is optional — write empty string if not provided
+	const FString ErrorStr = (PositionErrorCm >= 0.f)
+		? FString::Printf(TEXT("%.4f"), PositionErrorCm)
+		: FString();
+
+	Buffer.Add(FString::Printf(TEXT("%d,%.4f,%s,%s,%s,%.2f,%.2f,%.2f,%.4f,%s\n"),
 		Frame, TimeSeconds, *CleanLevel, *SafeActor, *Mode,
-		Position.X, Position.Y, Position.Z, FrameDeltaCm));
+		Position.X, Position.Y, Position.Z, FrameDeltaCm, *ErrorStr));
 
 	if (Buffer.Num() >= FlushInterval)
 	{

@@ -42,40 +42,63 @@ void AMotionModelActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	// Spike only applies to frame-based path (time-based uses WorldTime, which
-	// self-corrects — ignoring EffectiveDt here is intentional and is the demo's point).
-	if (!bTimeBased && bSimulateSpikes)
-	{
-		SpikeTimer += DeltaTime;
-		if (SpikeTimer >= SpikeInterval)
-		{
-			SpikeTimer = 0.f;
-			UE_LOG(LogTemp, Warning, TEXT("[MotionModelActor] %s: SPIKE injected"), *GetName());
-			// Frame-based path uses FramePhase which advances by 1 step regardless — the
-			// point is that it DOESN'T catch up, while time-based does automatically.
-		}
-	}
+	const float WorldTime = GetWorld()->GetTimeSeconds();
+
+	// Ground-truth position at this moment in time (used for error measurement)
+	const float TrueX = Amplitude * FMath::Sin(2.f * PI * Frequency * WorldTime);
 
 	float PosX = 0.f;
 
 	if (bTimeBased)
 	{
-		// Correct: always derived from total world time — frame rate irrelevant
-		const float WorldTime = GetWorld()->GetTimeSeconds();
-		PosX = Amplitude * FMath::Sin(2.f * PI * Frequency * WorldTime);
+		// Correct: always derived from total world time — frame rate irrelevant.
+		// Self-corrects instantly after any hitch.
+		PosX = TrueX;
 	}
 	else
 	{
-		// Wrong: phase advances by a fixed amount per frame, assuming a target FPS.
-		// At lower-than-assumed FPS the oscillation runs slow; at higher FPS it runs fast.
-		const float PhasePerFrame = 2.f * PI * Frequency / FMath::Max(AssumedFPS, 1.f);
-		FramePhase += PhasePerFrame;  // ignores EffectiveDt entirely
-		PosX = Amplitude * FMath::Sin(FramePhase);
+		// Wrong: phase advances by a fixed step per frame, assuming a target FPS.
+		// During a stall the actor freezes; after it resumes from the wrong phase.
+		// When FPS > AssumedFPS the oscillation runs fast; when FPS < AssumedFPS it runs slow.
+
+		if (bSimulateSpikes)
+		{
+			// Check if a new spike should fire
+			SpikeTimer += DeltaTime;
+			if (SpikeTimer >= SpikeInterval && SpikeRemaining <= 0.f)
+			{
+				SpikeRemaining = SpikeDuration;
+				SpikeTimer     = 0.f;
+				UE_LOG(LogTemp, Warning,
+					TEXT("[MotionModelActor] %s: STALL started (%.2fs)"), *GetName(), SpikeDuration);
+			}
+
+			// While stalling, consume time but don't advance phase
+			if (SpikeRemaining > 0.f)
+			{
+				SpikeRemaining -= DeltaTime;
+				PosX = Amplitude * FMath::Sin(FramePhase); // hold last position
+			}
+			else
+			{
+				const float PhasePerFrame = 2.f * PI * Frequency / FMath::Max(AssumedFPS, 1.f);
+				FramePhase += PhasePerFrame;
+				PosX = Amplitude * FMath::Sin(FramePhase);
+			}
+		}
+		else
+		{
+			const float PhasePerFrame = 2.f * PI * Frequency / FMath::Max(AssumedFPS, 1.f);
+			FramePhase += PhasePerFrame;
+			PosX = Amplitude * FMath::Sin(FramePhase);
+		}
 	}
 
-	const FVector PrevPos  = GetActorLocation();
-	const FVector NewPos   = SpawnLocation + FVector(PosX, 0.f, 0.f);
+	const FVector PrevPos    = GetActorLocation();
+	const FVector NewPos     = SpawnLocation + FVector(PosX, 0.f, 0.f);
 	const float   FrameDelta = (NewPos - PrevPos).Size();
+	// Positional error vs ground-truth sine — this is the key metric for Demo 3
+	const float   PosError   = FMath::Abs(PosX - TrueX);
 
 	SetActorLocation(NewPos);
 
@@ -86,10 +109,10 @@ void AMotionModelActor::Tick(float DeltaTime)
 	}
 
 	FMotionLogger::Get().LogRow(
-		GFrameCounter, GetWorld()->GetTimeSeconds(),
+		GFrameCounter, WorldTime,
 		GetWorld()->GetMapName(),
 		GetName(), bTimeBased ? TEXT("TimeBased") : TEXT("FrameBased"),
-		NewPos, FrameDelta);
+		NewPos, FrameDelta, PosError);
 
 	if (GEngine)
 	{

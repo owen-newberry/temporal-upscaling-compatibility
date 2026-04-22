@@ -49,11 +49,14 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Motion Model")
 	bool bSimulateSpikes = true;
 
+	// How often to inject a stall (seconds)
 	UPROPERTY(EditAnywhere, Category = "Motion Model", meta = (EditCondition = "bSimulateSpikes"))
 	float SpikeInterval = 4.f;
 
-	// SpikeDeltaTime removed — spikes on time-based path have no effect (by design).
-	// Frame-based path demonstrates divergence by NOT catching up after a hitch.
+	// How long the frame-based actor stalls per spike (seconds)
+	// Time-based actor self-corrects immediately; frame-based actor falls behind by this amount.
+	UPROPERTY(EditAnywhere, Category = "Motion Model", meta = (EditCondition = "bSimulateSpikes"))
+	float SpikeDuration = 0.5f;
 
 protected:
 	virtual void BeginPlay() override;
@@ -63,8 +66,9 @@ public:
 
 private:
 	FVector SpawnLocation;
-	float   FramePhase  = 0.f;   // accumulated phase for frame-based mode (radians)
-	float   SpikeTimer  = 0.f;
+	float   FramePhase    = 0.f;   // accumulated phase for frame-based mode (radians)
+	float   SpikeTimer    = 0.f;
+	float   SpikeRemaining = 0.f;  // seconds left in current stall
 
 	UMaterialInstanceDynamic* DynMaterial = nullptr;
 };

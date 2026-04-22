@@ -25,9 +25,10 @@ public:
 	void Reset();
 
 	// Appends one row. LevelName comes from GetWorld()->GetMapName().
+	// PositionErrorCm: optional ground-truth error (Demo 3 only). Pass -1 to omit.
 	void LogRow(int32 Frame, float TimeSeconds, const FString& LevelName,
 	            const FString& ActorName, const FString& Mode,
-	            FVector Position, float FrameDeltaCm);
+	            FVector Position, float FrameDeltaCm, float PositionErrorCm = -1.f);
 
 	// Flushes remaining buffer to disk.
 	void Flush();
