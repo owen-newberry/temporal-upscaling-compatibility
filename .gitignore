@@ -1,6 +1,13 @@
 # macOS
 .DS_Store
 
+# Local dev / AI assistant context — not part of the project
+copilot/
+prompts/
+
+# VS Code workspace settings (machine-specific)
+.vscode/
+
 # Python virtual environment
 .venv/
 
