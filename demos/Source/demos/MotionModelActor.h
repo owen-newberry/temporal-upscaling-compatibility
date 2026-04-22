@@ -54,9 +54,9 @@ public:
 	float SpikeInterval = 4.f;
 
 	// How long the frame-based actor stalls per spike (seconds)
-	// Time-based actor self-corrects immediately; frame-based actor falls behind by this amount.
+	// 0.15s = realistic frame hitch. Time-based self-corrects; frame-based falls behind.
 	UPROPERTY(EditAnywhere, Category = "Motion Model", meta = (EditCondition = "bSimulateSpikes"))
-	float SpikeDuration = 0.5f;
+	float SpikeDuration = 0.15f;
 
 protected:
 	virtual void BeginPlay() override;

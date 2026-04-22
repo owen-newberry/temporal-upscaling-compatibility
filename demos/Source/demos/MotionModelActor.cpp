@@ -114,13 +114,20 @@ void AMotionModelActor::Tick(float DeltaTime)
 		GetName(), bTimeBased ? TEXT("TimeBased") : TEXT("FrameBased"),
 		NewPos, FrameDelta, PosError);
 
+	const float CurrentFPS = (DeltaTime > 0.f) ? (1.f / DeltaTime) : 0.f;
+
 	if (GEngine)
 	{
+		const bool bStalling = !bTimeBased && (SpikeRemaining > 0.f);
+		const FString StallStr = bStalling
+			? FString::Printf(TEXT(" [STALL %.2fs]"), SpikeRemaining)
+			: TEXT("");
+
 		GEngine->AddOnScreenDebugMessage(
 			(uint64)GetUniqueID(), 0.f,
 			bTimeBased ? FColor::Green : FColor::Red,
-			FString::Printf(TEXT("[%s] %s | x=%.1f"),
+			FString::Printf(TEXT("[%s] %s | x=%.1f | err=%.1fcm | %.0f fps%s"),
 				bTimeBased ? TEXT("TimeBased") : TEXT("FrameBased"),
-				*GetName(), PosX));
+				*GetName(), PosX, PosError, CurrentFPS, *StallStr));
 	}
 }
