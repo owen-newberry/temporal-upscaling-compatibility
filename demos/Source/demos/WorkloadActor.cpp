@@ -4,6 +4,7 @@
 #include "MotionLogger.h"
 #include "Engine/Engine.h"
 #include "HAL/PlatformTime.h"
+#include "HAL/PlatformProcess.h"
 
 AWorkloadActor::AWorkloadActor()
 {
@@ -43,13 +44,10 @@ void AWorkloadActor::BeginPlay()
 
 void AWorkloadActor::ProcessTask()
 {
-	// Simulate CPU work: tight math loop that the compiler won't optimize away
-	volatile float acc = 1.f;
-	for (int32 i = 0; i < IterationsPerTask; ++i)
-	{
-		acc = FMath::Sin(acc + 0.001f) * FMath::Cos(acc);
-	}
-	(void)acc;
+	// Sleep 0.05ms per task — guaranteed cost on any hardware regardless of CPU speed.
+	// At TasksPerFrame=80 unbudgeted this is 4ms total per frame (~25fps cap).
+	// Budgeted mode cuts out after BudgetMs=2ms, keeping frame time bounded.
+	FPlatformProcess::Sleep(0.00005f);
 	TotalProcessed++;
 }
 
