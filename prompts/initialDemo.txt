@@ -1,0 +1,72 @@
+I am building a C++ Unreal Engine 5 simulation project to demonstrate how different time and execution architectures affect system stability.
+
+I need clean, modular C++ implementations (Unreal Engine style) for four experimental systems. This is NOT gameplay code; it is a deterministic simulation framework.
+
+GENERAL REQUIREMENTS:
+- Use Unreal Engine C++ conventions
+- Prefer UObject-based systems or ActorComponents where appropriate
+- Separate simulation logic from rendering/actors
+- Include debug logging (GEngine->AddOnScreenDebugMessage and optional CSV logging)
+- Code must support A/B comparison modes
+- Keep systems minimal and testable
+
+====================================================
+SCENARIO 1: FIXED TIMESTEP VS VARIABLE TIMESTEP
+====================================================
+Implement:
+- A fixed timestep simulation loop using accumulator pattern (60Hz)
+- A variable timestep version using DeltaTime directly
+- A shared simulated actor that can run both modes
+
+Must include:
+- interpolation between previous and current state for fixed timestep
+- logging frame time variance
+- position drift comparison over time
+
+====================================================
+SCENARIO 2: MOTION AUTHORITY SYSTEM
+====================================================
+Implement:
+- Multiple independent motion input sources (velocity + forces)
+- Baseline mode: actors directly modify transforms
+- Correct mode: centralized MotionAuthoritySystem that collects all FMotionInput and resolves final transform per actor
+
+Must include:
+- previous/current transform tracking
+- conflict detection or jitter measurement
+- deterministic resolution order
+
+====================================================
+SCENARIO 3: TIME-BASED VS FRAME-BASED ANIMATION
+====================================================
+Implement:
+- baseline animation using per-frame increments
+- correct version using DeltaTime scaling
+
+Must support:
+- adjustable simulated FPS (to exaggerate differences)
+- logging completion time and velocity consistency
+
+====================================================
+SCENARIO 4: WORKLOAD BUDGETING SYSTEM
+====================================================
+Implement:
+- task queue system with estimated execution cost per task (in milliseconds)
+- baseline: execute all tasks per frame
+- optimized: enforce per-frame time budget and defer tasks
+
+Must include:
+- frame time tracking
+- queue backlog growth visualization
+- average and worst-case frame time logging
+
+====================================================
+OUTPUT REQUIREMENTS:
+Return:
+- C++ class definitions
+- key header + cpp structure
+- core update loop logic
+- Unreal Engine integration points (Tick, Subsystems, ActorComponents)
+- debugging/logging strategy
+
+Keep everything minimal, modular, and optimized for experimentation rather than production.

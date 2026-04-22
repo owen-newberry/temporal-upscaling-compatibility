@@ -1,0 +1,10 @@
+Extend this system to support two modes:
+
+1. Direct mode:
+   - Each actor modifies its own transform in Tick
+
+2. Authority mode:
+   - Only AMotionAuthorityManager modifies transforms
+   - Actors only submit movement requests
+
+Add a boolean toggle to switch modes.

@@ -1,0 +1,6 @@
+Add debug visualization:
+- Draw actor velocity vectors
+- Print frame-to-frame position delta
+- Highlight when position changes abruptly (jitter detection)
+
+Use GEngine debug messages or DrawDebugLine.

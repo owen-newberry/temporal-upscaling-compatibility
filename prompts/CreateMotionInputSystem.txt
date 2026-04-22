@@ -1,0 +1,18 @@
+Create a simple Unreal Engine C++ Motion Authority system.
+
+Requirements:
+- A struct called FMotionInput containing:
+  - FVector DesiredVelocity
+  - FVector ExternalForce
+
+- A manager class AMotionAuthorityManager that:
+  - collects motion inputs from multiple actors
+  - resolves them into a single final velocity per actor
+  - applies movement in Tick
+
+- Each frame:
+  - reset inputs
+  - aggregate inputs
+  - apply final transform to controlled actors
+
+Keep it minimal and Unreal Engine 5 compatible.
