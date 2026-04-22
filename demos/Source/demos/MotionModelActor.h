@@ -52,8 +52,8 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Motion Model", meta = (EditCondition = "bSimulateSpikes"))
 	float SpikeInterval = 4.f;
 
-	UPROPERTY(EditAnywhere, Category = "Motion Model", meta = (EditCondition = "bSimulateSpikes"))
-	float SpikeDeltaTime = 0.2f;
+	// SpikeDeltaTime removed — spikes on time-based path have no effect (by design).
+	// Frame-based path demonstrates divergence by NOT catching up after a hitch.
 
 protected:
 	virtual void BeginPlay() override;

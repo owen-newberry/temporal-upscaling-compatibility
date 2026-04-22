@@ -43,16 +43,17 @@ void AMotionModelActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	// Inject spike
-	float EffectiveDt = DeltaTime;
-	if (bSimulateSpikes)
+	// Spike only applies to frame-based path (time-based uses WorldTime, which
+	// self-corrects — ignoring EffectiveDt here is intentional and is the demo's point).
+	if (!bTimeBased && bSimulateSpikes)
 	{
 		SpikeTimer += DeltaTime;
 		if (SpikeTimer >= SpikeInterval)
 		{
-			EffectiveDt = SpikeDeltaTime;
-			SpikeTimer  = 0.f;
-			UE_LOG(LogTemp, Warning, TEXT("[MotionModelActor] %s: SPIKE dt=%.3fs"), *GetName(), SpikeDeltaTime);
+			SpikeTimer = 0.f;
+			UE_LOG(LogTemp, Warning, TEXT("[MotionModelActor] %s: SPIKE injected"), *GetName());
+			// Frame-based path uses FramePhase which advances by 1 step regardless — the
+			// point is that it DOESN'T catch up, while time-based does automatically.
 		}
 	}
 
@@ -87,6 +88,7 @@ void AMotionModelActor::Tick(float DeltaTime)
 
 	FMotionLogger::Get().LogRow(
 		GFrameCounter, GetWorld()->GetTimeSeconds(),
+		GetWorld()->GetMapName(),
 		GetName(), bTimeBased ? TEXT("TimeBased") : TEXT("FrameBased"),
 		NewPos, FrameDelta);
 

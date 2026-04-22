@@ -41,6 +41,5 @@ public:
 
 private:
 	FVector SpawnLocation;
-	float TimeElapsed = 0.f;
 	UMaterialInstanceDynamic* DynMaterial = nullptr;
 };

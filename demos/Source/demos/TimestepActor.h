@@ -41,14 +41,15 @@ public:
 
 	// Spring stiffness — higher values make instability appear sooner
 	UPROPERTY(EditAnywhere, Category = "Spring")
-	float SpringK = 8.f;
+	float SpringK = 12.f;
 
+	// Damping — keep at 0 so Euler's energy error is visible as growing amplitude
 	UPROPERTY(EditAnywhere, Category = "Spring")
-	float Damping = 0.4f;
+	float Damping = 0.f;
 
 	// Initial displacement from spawn position (cm)
 	UPROPERTY(EditAnywhere, Category = "Spring")
-	float InitialDisplacement = 250.f;
+	float InitialDisplacement = 200.f;
 
 	// Periodically inject a large DeltaTime hitch to trigger instability
 	UPROPERTY(EditAnywhere, Category = "Timestep")

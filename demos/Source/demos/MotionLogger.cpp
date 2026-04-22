@@ -22,7 +22,7 @@ void FMotionLogger::Init()
 
 	IFileManager::Get().MakeDirectory(*LogDir, true);
 
-	const FString Header = TEXT("Frame,TimeSeconds,ActorName,Mode,PosX,PosY,PosZ,FrameDeltaCm\n");
+	const FString Header = TEXT("Frame,TimeSeconds,LevelName,ActorName,Mode,PosX,PosY,PosZ,FrameDeltaCm\n");
 	FFileHelper::SaveStringToFile(Header, *FilePath,
 		FFileHelper::EEncodingOptions::AutoDetect,
 		&IFileManager::Get(), FILEWRITE_EvenIfReadOnly);
@@ -33,13 +33,38 @@ void FMotionLogger::Init()
 	UE_LOG(LogTemp, Warning, TEXT("[MotionLogger] Logging to: %s"), *FilePath);
 }
 
-void FMotionLogger::LogRow(int32 Frame, float TimeSeconds, const FString& ActorName,
-                           const FString& Mode, FVector Position, float FrameDeltaCm)
+void FMotionLogger::Reset()
+{
+	if (bInitialized)
+	{
+		Flush();
+	}
+	bInitialized = false;
+	FilePath     = TEXT("");
+	Buffer.Reset();
+}
+
+void FMotionLogger::LogRow(int32 Frame, float TimeSeconds, const FString& LevelName,
+                           const FString& ActorName, const FString& Mode,
+                           FVector Position, float FrameDeltaCm)
 {
 	if (!bInitialized) return;
 
-	Buffer.Add(FString::Printf(TEXT("%d,%.4f,%s,%s,%.2f,%.2f,%.2f,%.4f\n"),
-		Frame, TimeSeconds, *ActorName, *Mode,
+	// Strip PIE prefix (e.g. "UEDPIE_0_L_MotionAuthority" → "L_MotionAuthority")
+	FString CleanLevel = LevelName;
+	if (CleanLevel.StartsWith(TEXT("UEDPIE_")))
+	{
+		int32 LastUnder;
+		if (CleanLevel.FindLastChar('_', LastUnder))
+			CleanLevel = CleanLevel.RightChop(LastUnder + 1);
+	}
+
+	// Sanitize actor name — commas would corrupt the CSV
+	FString SafeActor = ActorName;
+	SafeActor.ReplaceInline(TEXT(","), TEXT(";"));
+
+	Buffer.Add(FString::Printf(TEXT("%d,%.4f,%s,%s,%s,%.2f,%.2f,%.2f,%.4f\n"),
+		Frame, TimeSeconds, *CleanLevel, *SafeActor, *Mode,
 		Position.X, Position.Y, Position.Z, FrameDeltaCm));
 
 	if (Buffer.Num() >= FlushInterval)

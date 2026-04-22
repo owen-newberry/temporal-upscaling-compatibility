@@ -60,7 +60,8 @@ void ATimestepActor::Tick(float DeltaTime)
 		SpikeTimer += DeltaTime;
 		if (SpikeTimer >= SpikeInterval)
 		{
-			EffectiveDt = SpikeDeltaTime;
+			// Additive: simulates a real hitch on top of a normal frame
+			EffectiveDt = DeltaTime + SpikeDeltaTime;
 			SpikeTimer  = 0.f;
 			UE_LOG(LogTemp, Warning, TEXT("[TimestepActor] %s: SPIKE dt=%.3fs"),
 				*GetName(), SpikeDeltaTime);
@@ -98,6 +99,7 @@ void ATimestepActor::Tick(float DeltaTime)
 
 	FMotionLogger::Get().LogRow(
 		GFrameCounter, GetWorld()->GetTimeSeconds(),
+		GetWorld()->GetMapName(),
 		GetName(), bFixedTimestep ? TEXT("Fixed") : TEXT("Variable"),
 		NewPos, FrameDelta);
 

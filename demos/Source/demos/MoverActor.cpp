@@ -39,8 +39,6 @@ void AMoverActor::BeginPlay()
 
 	UE_LOG(LogTemp, Warning, TEXT("[MoverActor] BeginPlay: %s | spawn %s"),
 		*GetName(), *SpawnLocation.ToString());
-
-	FMotionLogger::Get().Init();
 }
 
 void AMoverActor::Tick(float DeltaTime)
@@ -49,9 +47,10 @@ void AMoverActor::Tick(float DeltaTime)
 
 	TimeElapsed += DeltaTime;
 
-	// Oscillate left/right along X around spawn position
+	// Use world time so phase is deterministic and not affected by BeginPlay order
+	const float WorldTime = GetWorld()->GetTimeSeconds();
 	const FVector DesiredPos = SpawnLocation + FVector(
-		Amplitude * FMath::Sin(2.f * PI * Frequency * TimeElapsed), 0.f, 0.f);
+		Amplitude * FMath::Sin(2.f * PI * Frequency * WorldTime), 0.f, 0.f);
 
 	const bool bUseAuthority = IsValid(AuthorityManager) && AuthorityManager->bAuthorityMode;
 
@@ -79,7 +78,7 @@ void AMoverActor::Tick(float DeltaTime)
 
 		FMotionLogger::Get().LogRow(
 			GFrameCounter, GetWorld()->GetTimeSeconds(),
-			GetName(), TEXT("Direct"), DesiredPos, FrameDelta);
+			GetWorld()->GetMapName(), GetName(), TEXT("Direct"), DesiredPos, FrameDelta);
 
 		if (GEngine)
 		{

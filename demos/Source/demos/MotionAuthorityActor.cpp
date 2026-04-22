@@ -59,6 +59,7 @@ void AMotionAuthorityActor::Tick(float DeltaTime)
 
 		FMotionLogger::Get().LogRow(
 			GFrameCounter, GetWorld()->GetTimeSeconds(),
+			GetWorld()->GetMapName(),
 			Input.Actor->GetName(), TEXT("Authority"),
 			Input.TargetLocation, FrameDelta.Size());
 

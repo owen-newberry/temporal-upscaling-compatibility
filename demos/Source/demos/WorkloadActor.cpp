@@ -66,6 +66,16 @@ void AWorkloadActor::Tick(float DeltaTime)
 		TaskQueue.Add(IterationsPerTask);
 	}
 
+	// Cap queue to prevent unbounded growth if budget < tasks-per-frame
+	const int32 MaxQueueSize = TasksPerFrame * 10;
+	if (TaskQueue.Num() > MaxQueueSize)
+	{
+		const int32 Dropped = TaskQueue.Num() - MaxQueueSize;
+		TaskQueue.RemoveAt(0, Dropped, EAllowShrinking::No);
+		UE_LOG(LogTemp, Warning, TEXT("[WorkloadActor] %s: queue overflow, dropped %d tasks"),
+			*GetName(), Dropped);
+	}
+
 	const double BudgetSeconds = (double)BudgetMs / 1000.0;
 	const double StartTime     = FPlatformTime::Seconds();
 	TasksDeferred = 0;
@@ -114,6 +124,7 @@ void AWorkloadActor::Tick(float DeltaTime)
 
 	FMotionLogger::Get().LogRow(
 		GFrameCounter, GetWorld()->GetTimeSeconds(),
+		GetWorld()->GetMapName(),
 		GetName(), bBudgeted ? TEXT("Budgeted") : TEXT("Unbudgeted"),
 		NewPos, FrameDelta);
 

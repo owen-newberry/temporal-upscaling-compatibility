@@ -45,7 +45,7 @@ public:
 
 	// Work iterations per task (higher = heavier task)
 	UPROPERTY(EditAnywhere, Category = "Workload")
-	int32 IterationsPerTask = 5000;
+	int32 IterationsPerTask = 50000;
 
 	// Maximum milliseconds to spend on tasks per frame (budgeted mode only)
 	UPROPERTY(EditAnywhere, Category = "Workload", meta = (EditCondition = "bBudgeted"))
