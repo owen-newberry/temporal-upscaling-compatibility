@@ -20,25 +20,26 @@ Rules of thumb for speaking:
 game code affects how well a modern upscaler — DLSS, FSR, the stuff that
 makes games run faster — actually works. Then I measured it."
 
-**Don't say:** "temporal upscaler compatibility through software design patterns."
-(That's the slide title. You already said it. The audience heard it.)
+**Don't say:** "Software design patterns for temporal upscaling compatibility
+and performance in real-time games." (That's the slide title. You already
+said it. The audience heard it.)
 
 ---
 
-## Slide 2 — Why should anyone care?
+## Slide 2 — What is Upscaling in Video Games?
 
 **Core idea (plain English):**
 
 Your graphics card has too much work to do. Modern games render at high
 resolutions with fancy lighting and thousands of objects. To keep the frame
-rate playable, almost every modern game uses a trick: **render at half
-resolution, then guess what the other half would look like by studying
-previous frames.**
+rate playable, almost every modern game uses a trick: **render at lower
+resolution, then guess what the rest of the image would look like by
+studying previous frames.**
 
-That trick is called *temporal upscaling*. DLSS (by NVIDIA), FSR (by AMD),
-and TSR (built into Unreal Engine) are the three big implementations. Almost
-every AAA game made in the last three years ships with one turned on by
-default.
+That trick is called *temporal upscaling*. DLSS (NVIDIA), FSR (AMD),
+TSR (Unreal Engine), and XeSS (Intel) are the four big implementations.
+Almost every AAA game made in the last three years ships with one turned
+on by default.
 
 **The analogy that works for everyone:**
 
@@ -55,28 +56,45 @@ anyone measure it the same way.
 
 ---
 
-## Slide 3 — The research question
+## Slide 3 — The Problem
 
-**Say:** "Specifically: are there known ways of writing game code that make
-this trick work better? And can we prove it with numbers?"
+**Say:** "The catch is that these upscalers only work if the game is behaving
+predictably. Objects have to move smoothly. Physics can't teleport when the
+frame rate spikes. Animations can't stutter. When games break those rules —
+and they do, all the time — the upscaler's guesses are wrong, and you get
+artifacts: smearing, ghosting, flicker, jitter."
 
-**Keep it short.** Don't belabor the question — the audience already gets
-it from slide 2.
+**The hook:** "So the question becomes — are there known ways of writing game
+code that *keep* the game predictable? And can we prove it with numbers?"
+
+**Keep this short.** The audience already cares from slide 2; this is just
+naming the specific failure modes.
 
 ---
 
-## Slide 4 — The four patterns
+## Slide 4 — The Solution
 
-**Say:** "I picked four of them, all well-known in game dev, none of them
-invented here. They each fix one specific thing that breaks the upscaler's
-ability to guess the next frame."
+**Say:** "I identified four software design patterns — all well-known in game
+development, none invented here — that each fix one specific way real games
+violate temporal predictability."
+
+**One breath, then advance.** This slide exists to set up the table on the
+next slide. Don't try to list the patterns yet.
+
+---
+
+## Slide 5 — Four Patterns, One Goal: Temporal Predictability
+
+**Say:** "Here they are. Four patterns, each addressing one specific failure
+mode that breaks the upscaler's ability to reuse information from previous
+frames."
 
 **If someone asks for specifics:**
 
 - **Pattern 1 (fixed-timestep simulation):** "Your game's physics runs on a
   steady internal heartbeat, even when the screen can't keep up. Like a
-  metronome." *(You can point at Demo 2 live if you want.)*
-- **Pattern 2 (time-based motion):** "The position of moving things is
+  metronome."
+- **Pattern 2 (time-based animation):** "The position of moving things is
   computed from the clock, not from how many frames have gone by. A
   window blind that falls at a steady 30 cm/s — not 'move one centimeter
   every frame.'"
@@ -87,130 +105,96 @@ ability to guess the next frame."
   work each frame instead of all of it at once. Like doing ten minutes of
   dishes after every meal instead of two hours of dishes on Sunday."
 
+**Sources to name-drop if pressed:** Gaffer On Games, Valve's GDC networking
+talks, NVIDIA developer docs, console performance guidelines.
+
 ---
 
-## Slide 5 — What I built
+## Slide 6 — The Paper
 
-**Say:** "Four mini-demos in Unreal Engine, each one has a cube that does
-the thing *right* and a cube that does the thing *wrong*, side-by-side. And
-I built a separate tool to log how they behave and spit out a report."
+**Say:** "The paper itself is a literature-review-and-framework. It surveys
+these four patterns across prior engineering literature, organizes them
+under a single framing — *upscaler compatibility* — that the source material
+never explicitly used, and argues that each pattern fixes a specific failure
+mode of the math behind DLSS, FSR, and TSR."
 
-**Why the dual-cube setup:** if both cubes are in the same scene, same
+**The novel-contribution framing:** "Nobody had synthesized these under a
+single umbrella before. Programmers knew the patterns. Researchers knew the
+upscalers. Connecting them is what's new."
+
+---
+
+## Slide 7 — The Methodology
+
+**Say:** "To turn that literature review into actual *evidence*, I built
+three things. Four mini-demos in Unreal Engine 5.7, each with a good-design
+cube and a bad-design cube side-by-side. A logging harness that captures
+per-frame motion and timing to CSV. And a Python analysis pipeline that
+spits out a self-updating report at the end of every session."
+
+**Why the dual-cube setup:** "If both cubes are in the same scene, same
 camera, same everything — the *only* thing that could differ is the pattern.
-Any difference you see is the pattern doing its job.
+Any difference you see is the pattern doing its job."
 
-**The harness is the real contribution:** "The cubes are teaching aids;
-the actual deliverable is the measurement pipeline. Anyone can run it on
-their own game to see where their patterns are weak."
-
----
-
-## Slide 6 — Live demo
-
-**If you do it:** Open `L_WorkloadBudget`. Hit Play. "Green cube is
-well-behaved; red cube isn't. Watch the frame rate number when I…"
-Click the red cube, toggle `bBudgeted` off. "…turn off the budget on the
-red one. Now it's a bully." *(Frame rate drops to ~22.)*
-
-**If you skip it:** "I have a live version but for time I'll show you the
-numbers from last night's capture on the next slide."
-
-**If the live demo breaks:** don't panic. Say "Unreal is having a moment
-— I've got the recorded data." Move on.
+**The harness is the real contribution:** "The cubes are teaching aids; the
+actual deliverable is the measurement pipeline. Anyone can run it on their
+own game to see where their patterns are weak. That's the part that outlives
+this paper."
 
 ---
 
-## Slide 7 — Headline result
+## Slide 8 — Live Demo
 
-**Say:** "This is Demo 4 — the budgeting pattern. Identical everything
-except whether the CPU work gets capped at 2 milliseconds per frame or
-not. The budgeted version runs at 112 FPS. The unbudgeted version runs at
-22 FPS. Same total work. Same code. Same actors. **5× frame rate
-difference** just from using the pattern."
+**If you do it:** Walk through the recorded clips in order — Fixed Timestep,
+Time-Based Animation, Motion Authority, then the Workload Budgeting pair
+(unbudgeted first, then budgeted for the dramatic reveal).
 
-**The real insight to drop in:** "It's not that the budgeted version is
-doing less work — both cubes do exactly the same amount of work over the
-session. It's that the budgeted one spreads it evenly. That's what the
-upscaler needs: predictable."
+**As each clip plays, narrate once:** "Green cube is well-behaved; red cube
+isn't. Watch the frame rate number in the corner." For the workload pair:
+"Same scene. Same work. Frame rate goes from 22 to 112 just from capping
+CPU work at 2 ms per frame."
 
-**Subtle important point (if someone asks):** The *mean* work per frame
-for the budgeted cube lands at 2.00 milliseconds. The budget was set to 2
-milliseconds. So the pattern is doing exactly what it advertises — no more,
-no less. That's the kind of measurability the paper is arguing for.
+**If a clip breaks / doesn't load:** Don't panic. Say "video's having a
+moment — I've got the numbers on the next slide." Move on.
 
 ---
 
-## Slide — Single-Writer Authority results (Demo 1)
-
-**Say:** "This is the authority pattern. Two different systems both want
-to move the same cube every frame — a common situation, happens any
-time you have animation and physics, or networking and local prediction,
-trying to control the same object. In the 'direct' version, whichever
-system writes the transform last wins, and the cube jitters. In the
-'authority' version, both systems submit their intent to a single
-arbitrator, and only the arbitrator touches the transform. The frame-to-frame
-variation — that's what gives upscalers fits — **drops by almost half**."
-
-**The number to lead with:** "**P95 frame delta goes from 9.9 cm to 5.2
-cm. Same motion, same cost — 47% less variance.**"
-
-**If someone asks about cost:** "Mean FPS is identical. The authority
-isn't doing real work — it's just deciding who gets to write. One extra
-function call per input. The pattern is almost free."
-
-**If someone asks about the rival writer:** "It's deterministic — a
-second sine wave at a higher frequency layered on top of the primary
-motion. Represents any second subsystem that legitimately wants to move
-the object. Scripted animation. Physics contact. Network correction.
-AI pathfinding. In a real game there are usually three or four of these
-fighting for every transform."
-
-**If someone asks 'isn't the rival writer just two function calls in the
-same Tick?' (the honest methodologist question):** "Yes — in the
-implementation. From the upscaler's perspective, what matters is the
-final transform the renderer sees; whether that transform was chosen by
-one function or two is invisible to reprojection. The demo models the
-**failure mode** (motion vector contaminated by a second writer), not
-the **organizational case** (two independent subsystems in different
-tick groups). Upgrading to a separate component is on the roadmap,
-but it would not change what the numbers measure."
-
----
-
-## Slide — Fixed-Timestep results (Demo 2)
+## Slide 9 — Fixed-Timestep Results
 
 **Say:** "This is a spring simulation. Same oscillator, same initial
-conditions, same hitches injected — the only difference is whether the
-simulation steps once per rendered frame or chops each frame into 16ms
-sub-steps. **The variable version overshoots the spring's physical
-maximum by 50% during hitches** — it's producing nonsense, and those
-nonsense positions are what the upscaler would be reprojecting."
+conditions, same 300 millisecond hitch injected every few seconds — the
+only difference is whether the simulation steps once per rendered frame
+or chops each frame into 16ms sub-steps. **The variable version overshoots
+the spring's physical maximum by 50% during hitches** — it's producing
+nonsense, and those nonsense positions are what the upscaler would be
+reprojecting."
 
-**The number to lead with:** "**Max position delta is 306 cm for
-variable, 200 cm for fixed. The spring can only physically reach
-200 cm of amplitude — variable is giving us positions outside the
-physically possible range.**"
+**The number to lead with:** "**Max position delta is 306 cm for variable,
+200 cm for fixed. The spring can only physically reach 200 cm of amplitude —
+variable is giving us positions outside the physically possible range.**"
 
 **Backup number (same direction):** "**Standard deviation of per-frame
-motion drops by 44%** when you switch to fixed-stepping. Lower
-variance = cleaner motion vectors = happier upscaler."
+motion drops by 44%** when you switch to fixed-stepping. Lower variance =
+cleaner motion vectors = happier upscaler."
 
-**Which column NOT to cite:** "P95 delta" — this one is slightly
-higher for Fixed (11.4 vs 9.5) because sub-stepping collapses multiple
-16ms simulation steps into one rendered frame. That reads as a bigger
-"per-rendered-frame" delta but it's correct catch-up behavior, not
-instability. If someone asks about it, that's the explanation; don't
-lead with it.
+**The cost story:** "**Mean FPS is identical — 119.9 on both.** The pattern
+is essentially free; you're just reshaping when the math runs."
 
-**If asked "why not use RK4 or Verlet?":** "Fair — real engines do.
-Euler is the pedagogical baseline here. The **pattern** (sub-stepping
-with a max-catch-up clamp) is what generalizes; it works with any
-integrator. RK4 without sub-stepping would still fail under a 300ms
-hitch, just less spectacularly."
+**Which column NOT to cite:** "P95 delta" — this one is slightly higher
+for Fixed because sub-stepping collapses multiple 16ms simulation steps
+into one rendered frame. That reads as a bigger "per-rendered-frame" delta
+but it's correct catch-up behavior, not instability. If someone asks,
+that's the explanation; don't lead with it.
+
+**If asked "why not use RK4 or Verlet?":** "Fair — real engines do. Euler
+is the pedagogical baseline here. The **pattern** (sub-stepping with a
+max-catch-up clamp) is what generalizes; it works with any integrator.
+RK4 without sub-stepping would still fail under a 300ms hitch, just less
+spectacularly."
 
 ---
 
-## Slide — Time-Based Animation results (Demo 3)
+## Slide 10 — Time-Based Animation Results
 
 **⚠️ This is the slide with the subtlest framing risk — read twice.**
 
@@ -250,84 +234,130 @@ and no amount of reprojection fixes it."
 
 ---
 
-## Slide — Workload Budgeting results (Demo 4)
+## Slide 11 — Single-Writer Motion Authority Results
 
-**Say:** "This is the headline result. Same CPU work done in both
-actors over the session — same tight math loop, same number of
-iterations, totals out to the same number of CPU cycles. One of them
-caps itself at 2 milliseconds per frame; the other just does all the
-work whenever it's asked. **5× frame-rate difference** just from
-managing *when* the work happens."
+**Say:** "This is the authority pattern. Two different systems both want
+to move the same cube every frame — a common situation, happens any
+time you have animation and physics, or networking and local prediction,
+trying to control the same object. In the 'direct' version, whichever
+system writes the transform last wins, and the cube jitters. In the
+'authority' version, both systems submit their intent to a single
+arbitrator, and only the arbitrator touches the transform. The
+frame-to-frame variation — that's what gives upscalers fits — **drops
+by almost half**."
+
+**The number to lead with:** "**P95 frame delta goes from 9.9 cm to
+5.2 cm. Same motion, same cost — 47% less variance.**"
+
+**If someone asks about cost:** "Mean FPS is identical — 119.8 on both.
+The authority isn't doing real work — it's just deciding who gets to
+write. One extra function call per input. The pattern is almost free."
+
+**If someone asks about the rival writer:** "It's deterministic — a
+second sine wave at a higher frequency layered on top of the primary
+motion. Represents any second subsystem that legitimately wants to move
+the object. Scripted animation. Physics contact. Network correction.
+AI pathfinding. In a real game there are usually three or four of these
+fighting for every transform."
+
+**If someone asks 'isn't the rival writer just two function calls in the
+same Tick?' (the honest methodologist question):** "Yes — in the
+implementation. From the upscaler's perspective, what matters is the
+final transform the renderer sees; whether that transform was chosen by
+one function or two is invisible to reprojection. The demo models the
+**failure mode** (motion vector contaminated by a second writer), not
+the **organizational case** (two independent subsystems in different
+tick groups). Upgrading to a separate component is on the roadmap,
+but it would not change what the numbers measure."
+
+---
+
+## Slide 12 — Workload Budgeting Results
+
+**This is the headline result. Land it clean.**
+
+**Say:** "Same CPU work done in both actors over the session — same
+tight math loop, same number of iterations, totals out to the same
+number of CPU cycles. One of them caps itself at 2 milliseconds per
+frame; the other just does all the work whenever it's asked. **5×
+frame-rate difference** just from managing *when* the work happens."
 
 **Numbers to memorize:** "112 FPS budgeted, 22 FPS unbudgeted. Mean
 work per frame lands at 2.00 milliseconds — the budget was set to
 2 milliseconds. Pattern does exactly what it advertises."
 
-**The swarm variant:** "I also ran it with 8 intensive actors
-simultaneously to simulate a real game with multiple expensive
-subsystems. The effect shrinks to about 1.7× (56 FPS vs 33 FPS) but
-it's still there and still significant. Of course the effect shrinks —
-you can only defer work that *can* be deferred, and at some point the
-total work exceeds any budget. That's not a failure of the pattern,
-it's an honest diminishing return."
+**The real insight to drop in:** "It's not that the budgeted version
+is doing less work — both actors do exactly the same amount of work
+over the session. It's that the budgeted one spreads it evenly.
+That's what the upscaler needs: predictable."
+
+**Max frame time callout (if you have time):** "Even max frame time
+drops — 116 ms unbudgeted down to 98 ms budgeted. The worst frame is
+better, not just the average."
 
 ---
 
-## Slide 7.5 — Combined stress
+## Slide 13 — The Catch: Budgeting Trades Jitter for Latency (part 1)
 
-**Say:** "Then I ran all four demos in the same scene at once to make
-sure the patterns still work when they're stacked on top of each other. They
-do. The budget still held at 2.00 ms. The physics still stayed bounded.
-Patterns compose."
+**Say:** "Now — these patterns are not free. They defer work; they
+don't delete it. Budgeting is the clearest example: a 20-millisecond
+CPU spike becomes a smooth 2-millisecond-per-frame cost spread across
+ten frames. Great for the upscaler — variance drops, frame rate climbs
+5×. But deferred work is **delayed** work."
 
-**Why this matters:** "Real games have all four problems at the same time.
-Showing each pattern works in isolation is fine for a paper — showing they
-work *together* is what makes it useful to a real team."
+**Transition line to the next slide:** "And if you apply this pattern
+to the *wrong* system, you trade a visible problem for an invisible
+one…" *(advance)*
 
 ---
 
-## Slide 8 — Not a silver bullet
+## Slide 14 — The Catch: Budgeting Trades Jitter for Latency (part 2)
 
-**Say:** "The catch is: all four patterns add cost somewhere else. Budgeting
-in particular means you're *delaying* work, not deleting it. If you delay
-the wrong thing — player input, physics for something important, network
-acks — your game breaks in subtle ways: NPCs freeze for half a second,
-your character walks through a wall, etc."
+**Say:** "Player physics deferred means your character can clip through
+a wall. Input handling deferred means your clicks feel laggy. Far-field
+AI deferred means NPCs freeze for 300 milliseconds and then snap into
+position. The jitter went away, but something worse might have taken
+its place."
+
+**Key phrase:** "**The design question isn't 'should I budget?' —
+it's 'which systems can tolerate deferral?'**"
+
+**The overall framing:** "**Predictable, not faster.** That's the whole
+paper in two words. The patterns don't make games faster in some
+absolute sense — they make them *predictable*, which is what the
+upscaler needs, and what the player *feels* as smoothness."
 
 **If someone pushes back ('then isn't this just a hack?'):** "It's a
-trade. Visible jitter goes away; invisible latency shows up. The value is
-that visible jitter is what upscalers amplify into artifacts you can see,
-and latency is often something a player can tolerate on background
-systems."
-
-**Key phrase:** "Predictable, not faster."
+trade. Visible jitter goes away; invisible latency shows up. The value
+is that visible jitter is what upscalers amplify into on-screen
+artifacts, and latency is often something a player can tolerate on
+background systems. The skill is knowing *which* systems."
 
 ---
 
-## Slide 9 — Methodology contribution
+## Slide 15 — Why This Matters
 
-**Say:** "The long-term value isn't the four demos — it's the pipeline.
-I can drop a new upscaler into this thing (FSR, Intel's XeSS, whatever
-comes next) and instantly get a report comparing it across all four
-patterns. That's the research-reuse story."
+**Say:** "Two audiences benefit directly. Engine programmers get four
+concrete, code-level changes with measured impact, plus the tooling to
+validate their own codebase against the same metrics. And players get
+fewer smearing and ghosting and stutter artifacts in games built on
+these principles — which is the whole point."
 
-**For engineering audiences:** "Capture to CSV, Python does the math,
-markdown comes out the other end. Reproducible. Anyone with the repo
-can rerun it."
+**If someone asks about the research angle (it used to be on the slide):**
+"The research contribution is the synthesis and the harness — gathering
+four scattered game-dev patterns under a single framing and building a
+reproducible measurement pipeline. The follow-up paper compares TSR,
+FSR, and DLSS head-to-head across all four patterns. The code is
+already upscaler-agnostic; only the plugin installs and capture runs
+remain."
+
+**If someone asks "so what's next?":** "Three-way TSR / FSR / DLSS
+comparison. That's the real upscaler-literature contribution — this
+paper is the framework, the next one is the evaluation."
 
 ---
 
-## Slide 10 — What's next
-
-**Say:** "FSR integration is the biggest unfinished piece. I've scoped
-it at about four hours of work — the scope doc is in the repo. The
-bigger paper will compare TSR, FSR, and DLSS head-to-head across all
-four patterns, which becomes a real contribution to the upscaler
-literature."
-
----
-
-## Slide 11 — Thanks / Q&A
+## Slide 16 — Thanks / Q&A
 
 Memorize two opening moves:
 
@@ -409,7 +439,7 @@ dev docs). What's new is:
 
 1. Gathering them under a single framing ("upscaler compatibility")
 2. Producing a measurement harness that quantifies each one
-3. Showing they compose under combined load
+3. Showing they hold up under the same empirical methodology
 
 No one had done that synthesis before, which is what the paper argues.
 
@@ -433,12 +463,15 @@ test-bed.
 | Frame-rate ratio | 5× |
 | Mean work per frame, budgeted | 2.00 ms |
 | Configured budget | 2 ms |
-| Demo duration | ~30 s each |
-| Number of patterns studied | 4 |
-| Number of upscalers compared (currently) | 1 (TSR); FSR planned |
-| Combined-stress actors | 8, one level |
+| Max frame time (unbudgeted → budgeted) | 116 → 98 ms |
+| Fixed-timestep Max Δ (variable vs fixed) | 306 cm vs 200 cm |
+| Fixed-timestep σ Δ reduction | 44% |
+| Time-based: Frame-based schedule drift | 400 cm (4 m) |
 | Authority σ Δ reduction | 43% (3.4 → 1.9 cm) |
 | Authority P95 Δ reduction | 47% (9.9 → 5.2 cm) |
+| Mean FPS (all non-budgeting demos) | ~119.9 (pattern is free) |
+| Number of patterns studied | 4 |
+| Number of upscalers compared (currently) | 1 (TSR); FSR + DLSS in follow-up |
 
 If you get one of these wrong on stage, it's fine — nobody fact-checks
 during a research celebration. What matters is the *direction* (budgeted

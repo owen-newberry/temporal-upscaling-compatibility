@@ -15,7 +15,7 @@ paginate: true
 Modern games render more pixels than the GPU can afford.
 **4K + 60 FPS + real-time lighting** is genuinely impossible on most hardware.
 
-**The workaround:** render at half resolution and guess the rest of the
+**The workaround:** render at lower resolution and guess the rest of the
 image by studying **previous frames**.
 
 That guess-from-the-past trick is called **temporal upscaling**.
@@ -27,37 +27,27 @@ That guess-from-the-past trick is called **temporal upscaling**.
 | **TSR**  | Epic   | Built into Unreal Engine 5 |
 | **XeSS** | Intel  | Arc + cross-vendor, since 2022 |
 
-> Almost every AAA game released in the last 3 years ships with one turned on **by default**.
-
 ---
 
 ## The Problem
 
 > Modern temporal upscaling (DLSS, FSR, TSR) requires clean software architecture and specific design to work effectively.
 
-The guess-from-the-past trick only works if the game behaves **predictably**:
+Upscaling techniques only work if the game behaves **predictably**:
 
 - Objects move with stable, smooth motion vectors
 - Physics doesn't teleport during frame spikes
 - Animations don't stutter when the frame rate changes
 
-When games break these rules — which most do, accidentally — the upscaler's
-guesses become **wrong**. The result: **smearing, ghosting, flicker, and jitter.**
-
-And nobody writes down what *"predictable"* means for engine programmers.
+When games break these rules, the upscaler's
+predictions become **wrong**. The result: **smearing, ghosting, flicker, and jitter.**
 
 ---
 
 ## The Solution
 
-Borrow four **well-known software design patterns** from game-development
-literature that each fix one specific way real games violate temporal predictability.
-
-Then **measure them** — in a real engine, on real hardware, with a
-reproducible harness — so engine programmers have numbers behind the intuition.
-
-> The contribution isn't the patterns themselves.
-> It's the **framing** (upscaler compatibility) and the **measurement harness**.
+Identify four **software design patterns** for game-development
+that each fix one specific way real games violate temporal predictability.
 
 ---
 
@@ -78,58 +68,30 @@ to reuse information from previous frames.
 
 ---
 
-## The Paper
-
-A **literature-review-and-framework** paper that:
-
-- Surveys the four patterns across prior engineering literature
-  (Gaffer On Games, Valve GDC talks, NVIDIA developer docs, console
-  performance guidelines)
-- Organizes them under a **single framing** — *upscaler compatibility* —
-  that the source material did not explicitly use
-- Argues that each pattern addresses a **specific failure mode** of
-  temporal reprojection (the math behind DLSS / FSR / TSR)
-
-The patterns aren't new. The **synthesis** is.
-
----
-
 ## The Methodology
 
-To turn a literature review into **empirical evidence**, I built:
-
-1. **Four minimal demos** in Unreal Engine 5.7 — each has a *good-citizen*
-   cube (pattern applied) and a *naive* cube (pattern violated), running
-   **side-by-side** in the same scene, same camera, same frame.
+1. **Four minimal demos** in Unreal Engine 5.7 — each has a *good design*
+   cube (pattern applied) and a *bad design* cube (pattern violated).
 2. An in-engine **logging harness** (`FMotionLogger` + `FPerfLogger`)
    capturing per-frame motion, timing, and CPU work to CSV.
 3. A **Python analysis pipeline** (pandas, matplotlib, scikit-learn) that
    produces a self-updating performance report at the end of every session.
 
-> The four cubes are teaching aids. The **harness** is the real contribution —
-> anyone can run it on their own engine to measure their own patterns.
-
 ---
 
 ## Live Demo
 
-**What to watch for:**
-
-- **Green cube** = good citizen (pattern applied correctly)
-- **Red cube** = naive (pattern violated)
-- Floating labels name the mode
-- On-screen frame-time spikes when the naive cube misbehaves
-
-**Fallback:** if live breaks, every behavior on-screen is also in the CSVs —
-jump to the numbers on the next slides.
+- [Fixed Timestep](../../videos/FixedTimestep.mp4)
+- [Time Based Animation](../../videos/TimeBasedAnimation.mp4)
+- [Single Writer Motion Authority](../../videos/MotionAuthority.mp4)
+- [Workload Budgeting - Unbudgeted](../../videos/WorkloadUnbudgeted.mp4)
+- [Workload Budgeting - Budgeted](../../videos/WorkloadBudgeted.mp4)
 
 ---
 
 ## Fixed-Timestep — Results
 
 Same spring, same 300 ms hitch injected every few seconds.
-**Variable** integrates one step per rendered frame; **Fixed** chops each
-frame into 16 ms sub-steps capped by a catch-up clamp.
 
 | Metric | Variable (naive Euler) | Fixed (sub-stepped) | Δ |
 |---|---:|---:|---:|
@@ -137,12 +99,6 @@ frame into 16 ms sub-steps capped by a catch-up clamp.
 | **σ Δ (cm)** | **9.31** | **5.25** | **−44%** |
 | Mean Δ (cm) | 4.89 | 3.73 | — |
 | Mean FPS | 119.9 | 119.9 | identical cost |
-
-_Variable mode **overshoots the spring's physical maximum** during hitches — the simulation is producing nonsense, and those are the motion vectors the upscaler has to reproject. Fixed mode stays inside the amplitude envelope where it belongs._
-
-<!-- Speaker note: cite Max Δ and σ Δ, NOT P95 Δ. Fixed's sub-stepping
-produces controlled catch-up jumps per rendered frame, so P95 is slightly
-higher (11.4 vs 9.5) but that's correct behavior, not a defect. -->
 
 ---
 
@@ -157,18 +113,6 @@ assuming a fixed 60 FPS (**Frame-Based**).
 | **Max schedule deviation** | **400 cm** (4 meters off-target) | — (matches schedule by construction) |
 | **Mean schedule deviation** | **165 cm** | — |
 | σ Δ / frame | 3.74 cm | 3.99 cm (larger — includes honest catch-up jumps during hitches) |
-
-_The counter-based cube **drifts up to 4 meters away from where the animation
-is supposed to be** during a 400 ms hitch. The wall-clock cube catches up
-to its intended position on the next frame, producing a bigger motion
-vector — but that motion vector is **correct**, and the upscaler reprojects
-it cleanly. Frame-based produces smaller motion vectors but **lies** about
-where the object is._
-
-<!-- Honest framing: Time-Based "zero error" is by construction (ground
-truth IS the time-based formula). The meaningful claim is that
-Frame-Based fails to hit its own design target by 4m during a hitch. Don't
-say "Time-Based is error-free" as a standalone boast. -->
 
 ---
 
@@ -201,17 +145,15 @@ itself at 2 ms per frame; the other spends whatever it needs.
 | Max work / frame | 20.7 ms | 2.77 ms | peak clamp honored |
 | Max frame time | 116.4 ms | 98.0 ms | — |
 
-_Same total work. Same code. Same actor. The only difference is how the
+Same total work. Same code. Same actor. The only difference is how the
 work is **spread across frames**. Budgeted mode hits its configured
-target exactly — mean work lands at 2.00 ms against a configured 2 ms budget._
-
-Stress-test variant (swarm of 8 intensive actors): **56 FPS budgeted vs 33 FPS unbudgeted** — the effect holds at scale.
+target exactly, mean work lands at 2.00 ms against a configured 2 ms budget.
 
 ---
 
 ## The Catch: Budgeting Trades Jitter for Latency
 
-The patterns are **not free**. They defer work — they don't delete it.
+Most of these patterns aren't without some drawbacks. They defer work, they don't delete it.
 
 Workload budgeting is the clearest example:
 
@@ -220,6 +162,10 @@ Workload budgeting is the clearest example:
 - But deferred work is **delayed** work
 
 **Applied to the wrong system, you trade a visible problem for an invisible one:**
+
+---
+
+## The Catch: Budgeting Trades Jitter for Latency
 
 | Deferred system | Symptom |
 |---|---|
@@ -235,13 +181,6 @@ Workload budgeting is the clearest example:
 
 ## Why This Matters
 
-**For researchers**
-
-- First synthesis of four scattered game-dev patterns under a single
-  framing — *upscaler compatibility*
-- A reproducible measurement harness that future papers can extend with
-  new patterns, new upscalers, new engines
-
 **For engine programmers**
 
 - Four concrete, code-level changes with **measured impact**
@@ -251,10 +190,6 @@ Workload budgeting is the clearest example:
 
 - Fewer smearing / ghosting / stutter artifacts in games built on these
   principles
-
-**Next step.** Three-way comparison — **TSR vs FSR vs DLSS** — across all four
-patterns. Code harness is already upscaler-agnostic (plugin-switchable at
-runtime); only the AMD/NVIDIA plugin installs and capture runs remain.
 
 ---
 
