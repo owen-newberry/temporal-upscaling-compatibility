@@ -22,7 +22,7 @@ void FMotionLogger::Init()
 
 	IFileManager::Get().MakeDirectory(*LogDir, true);
 
-	const FString Header = TEXT("Frame,TimeSeconds,LevelName,ActorName,Mode,PosX,PosY,PosZ,FrameDeltaCm,PositionErrorCm\n");
+	const FString Header = TEXT("Frame,TimeSeconds,LevelName,ActorName,Mode,PosX,PosY,PosZ,FrameDeltaCm,PositionErrorCm,FrameWorkMs\n");
 	FFileHelper::SaveStringToFile(Header, *FilePath,
 		FFileHelper::EEncodingOptions::AutoDetect,
 		&IFileManager::Get(), FILEWRITE_EvenIfReadOnly);
@@ -46,7 +46,8 @@ void FMotionLogger::Reset()
 
 void FMotionLogger::LogRow(int32 Frame, float TimeSeconds, const FString& LevelName,
                            const FString& ActorName, const FString& Mode,
-                           FVector Position, float FrameDeltaCm, float PositionErrorCm)
+                           FVector Position, float FrameDeltaCm,
+                           float PositionErrorCm, float FrameWorkMs)
 {
 	if (!bInitialized) return;
 
@@ -63,14 +64,19 @@ void FMotionLogger::LogRow(int32 Frame, float TimeSeconds, const FString& LevelN
 	FString SafeActor = ActorName;
 	SafeActor.ReplaceInline(TEXT(","), TEXT(";"));
 
-	// PositionErrorCm is optional — write empty string if not provided
+	// Optional per-demo columns — write empty strings when unused so the
+	// schema is stable across demos without forcing every caller to fill in
+	// values it has no meaning for.
 	const FString ErrorStr = (PositionErrorCm >= 0.f)
 		? FString::Printf(TEXT("%.4f"), PositionErrorCm)
 		: FString();
+	const FString WorkStr = (FrameWorkMs >= 0.f)
+		? FString::Printf(TEXT("%.4f"), FrameWorkMs)
+		: FString();
 
-	Buffer.Add(FString::Printf(TEXT("%d,%.4f,%s,%s,%s,%.2f,%.2f,%.2f,%.4f,%s\n"),
+	Buffer.Add(FString::Printf(TEXT("%d,%.4f,%s,%s,%s,%.2f,%.2f,%.2f,%.4f,%s,%s\n"),
 		Frame, TimeSeconds, *CleanLevel, *SafeActor, *Mode,
-		Position.X, Position.Y, Position.Z, FrameDeltaCm, *ErrorStr));
+		Position.X, Position.Y, Position.Z, FrameDeltaCm, *ErrorStr, *WorkStr));
 
 	if (Buffer.Num() >= FlushInterval)
 	{

@@ -8,6 +8,9 @@
 #include "Materials/MaterialInstanceDynamic.h"
 #include "MotionModelActor.generated.h"
 
+class UTextRenderComponent;
+class UPointLightComponent;
+
 /**
  * Demo 3 — Time-based vs Frame-based Motion
  *
@@ -46,6 +49,12 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Motion Model", meta = (EditCondition = "!bTimeBased"))
 	float AssumedFPS = 60.f;
 
+	// Starting phase offset (radians) for the frame-based mode. Setting this to ~PI/4
+	// (0.785) on the frame-based actor makes its drift visible immediately at t=0
+	// instead of waiting for accumulated error to separate the two actors.
+	UPROPERTY(EditAnywhere, Category = "Motion Model", meta = (EditCondition = "!bTimeBased"))
+	float InitialFramePhase = 0.f;
+
 	UPROPERTY(EditAnywhere, Category = "Motion Model")
 	bool bSimulateSpikes = true;
 
@@ -69,6 +78,10 @@ private:
 	float   FramePhase    = 0.f;   // accumulated phase for frame-based mode (radians)
 	float   SpikeTimer    = 0.f;
 	float   SpikeRemaining = 0.f;  // seconds left in current stall
+
+	UPROPERTY() UTextRenderComponent* Label = nullptr;
+	UPROPERTY() UPointLightComponent* Light = nullptr;
+	TArray<FVector> TrailPoints;
 
 	UMaterialInstanceDynamic* DynMaterial = nullptr;
 };

@@ -9,7 +9,13 @@
  * Call Init() once at session start, LogRow() each frame, Flush() at session end.
  * Output: <ProjectSaved>/Logs/MotionCapture_<timestamp>.csv
  *
- * Columns: Frame, TimeSeconds, LevelName, ActorName, Mode, PosX, PosY, PosZ, FrameDeltaCm
+ * Columns: Frame, TimeSeconds, LevelName, ActorName, Mode, PosX, PosY, PosZ,
+ *          FrameDeltaCm, PositionErrorCm, FrameWorkMs
+ *
+ * PositionErrorCm is Demo 3's ground-truth sine error.
+ * FrameWorkMs is Demo 4's per-actor CPU work-time for this frame — the actual
+ * differentiator between Budgeted and Unbudgeted since both use identical
+ * time-based motion. Pass negative values to leave the column empty.
  */
 class DEMOS_API FMotionLogger
 {
@@ -25,10 +31,12 @@ public:
 	void Reset();
 
 	// Appends one row. LevelName comes from GetWorld()->GetMapName().
-	// PositionErrorCm: optional ground-truth error (Demo 3 only). Pass -1 to omit.
+	// PositionErrorCm: optional ground-truth error (Demo 3). Pass -1 to omit.
+	// FrameWorkMs:     optional per-actor work-time in ms (Demo 4). Pass -1 to omit.
 	void LogRow(int32 Frame, float TimeSeconds, const FString& LevelName,
 	            const FString& ActorName, const FString& Mode,
-	            FVector Position, float FrameDeltaCm, float PositionErrorCm = -1.f);
+	            FVector Position, float FrameDeltaCm,
+	            float PositionErrorCm = -1.f, float FrameWorkMs = -1.f);
 
 	// Flushes remaining buffer to disk.
 	void Flush();

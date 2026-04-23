@@ -1,7 +1,10 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "MotionModelActor.h"
+#include "DemoVisuals.h"
 #include "MotionLogger.h"
+#include "Components/PointLightComponent.h"
+#include "Components/TextRenderComponent.h"
 #include "Engine/Engine.h"
 
 AMotionModelActor::AMotionModelActor()
@@ -16,6 +19,12 @@ AMotionModelActor::AMotionModelActor()
 		TEXT("/Engine/BasicShapes/Cube.Cube"));
 	if (CubeMesh.Succeeded())
 		Mesh->SetStaticMesh(CubeMesh.Object);
+
+	Label = CreateDefaultSubobject<UTextRenderComponent>(TEXT("Label"));
+	Label->SetupAttachment(Mesh);
+
+	Light = CreateDefaultSubobject<UPointLightComponent>(TEXT("Light"));
+	Light->SetupAttachment(Mesh);
 }
 
 void AMotionModelActor::BeginPlay()
@@ -23,7 +32,7 @@ void AMotionModelActor::BeginPlay()
 	Super::BeginPlay();
 
 	SpawnLocation = GetActorLocation();
-	FramePhase    = 0.f;
+	FramePhase    = InitialFramePhase;
 	SpikeTimer    = 0.f;
 
 	UMaterial* BaseMat = Cast<UMaterial>(StaticLoadObject(
@@ -33,6 +42,15 @@ void AMotionModelActor::BeginPlay()
 		DynMaterial = UMaterialInstanceDynamic::Create(BaseMat, this);
 		Mesh->SetMaterial(0, DynMaterial);
 	}
+
+	const FLinearColor ModeColor = bTimeBased
+		? FLinearColor(0.15f, 0.95f, 0.35f)
+		: FLinearColor(0.95f, 0.20f, 0.15f);
+	const FString ModeText = bTimeBased ? TEXT("TIME-BASED") : TEXT("FRAME-BASED");
+	DemoVisuals::ConfigureLabel(Label, Mesh, ModeText, ModeColor);
+	DemoVisuals::ConfigureLight(Light, ModeColor);
+
+	TrailPoints.Reset();
 
 	UE_LOG(LogTemp, Warning, TEXT("[MotionModelActor] BeginPlay: %s | mode=%s"),
 		*GetName(), bTimeBased ? TEXT("TimeBased") : TEXT("FrameBased"));
@@ -107,6 +125,11 @@ void AMotionModelActor::Tick(float DeltaTime)
 		DynMaterial->SetVectorParameterValue(TEXT("Color"),
 			bTimeBased ? FLinearColor(0.f, 1.f, 0.f) : FLinearColor(1.f, 0.f, 0.f));
 	}
+
+	DemoVisuals::PushTrailSample(TrailPoints, NewPos);
+	DemoVisuals::DrawTrail(GetWorld(), TrailPoints,
+		bTimeBased ? FLinearColor(0.15f, 0.95f, 0.35f)
+		           : FLinearColor(0.95f, 0.20f, 0.15f));
 
 	FMotionLogger::Get().LogRow(
 		GFrameCounter, WorldTime,

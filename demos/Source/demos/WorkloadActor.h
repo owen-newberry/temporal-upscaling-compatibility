@@ -8,6 +8,9 @@
 #include "Materials/MaterialInstanceDynamic.h"
 #include "WorkloadActor.generated.h"
 
+class UTextRenderComponent;
+class UPointLightComponent;
+
 /**
  * Demo 4 — Workload Budgeting (Task Queue per Frame)
  *
@@ -43,9 +46,13 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Workload")
 	int32 TasksPerFrame = 80;
 
-	// Work iterations per task (higher = heavier task)
+	// Target wall-clock duration of a single task in milliseconds.
+	// Uses a wall-time busy loop so the cost is reliable across hardware
+	// (unlike pure iteration counts, which vary with CPU speed).
+	// Default 0.1ms × 80 tasks = ~8ms of work per frame unbudgeted,
+	// well above the 2ms budget so deferred counts stay meaningful.
 	UPROPERTY(EditAnywhere, Category = "Workload")
-	int32 IterationsPerTask = 50000;
+	float TaskDurationMs = 0.1f;
 
 	// Maximum milliseconds to spend on tasks per frame (budgeted mode only)
 	UPROPERTY(EditAnywhere, Category = "Workload", meta = (EditCondition = "bBudgeted"))
@@ -74,5 +81,14 @@ private:
 
 	TArray<int32> TaskQueue;   // each entry = number of iterations for that task
 
+	UPROPERTY() UTextRenderComponent* Label = nullptr;
+	UPROPERTY() UPointLightComponent* Light = nullptr;
+	TArray<FVector> TrailPoints;
+
 	UMaterialInstanceDynamic* DynMaterial = nullptr;
+
+	// Tracks what mode the visuals currently reflect so Tick can detect a
+	// mismatch and refresh them. Needed because coordinators often set
+	// bBudgeted *after* BeginPlay has already run with the default value.
+	bool bLastVisualBudgeted = true;
 };

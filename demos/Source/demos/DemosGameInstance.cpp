@@ -2,27 +2,57 @@
 
 #include "DemosGameInstance.h"
 #include "MotionLogger.h"
+#include "PerfLogger.h"
 
 void UDemosGameInstance::Init()
 {
 	Super::Init();
 
-	// Reset the logger so each PIE session / standalone run gets a fresh CSV file.
-	// Without this the singleton stays initialized from the previous session and
-	// all subsequent sessions either append to the old file or log nothing.
+	// Reset the motion logger so each PIE session / standalone run gets a
+	// fresh CSV file. Without this the singleton stays initialized from the
+	// previous session and all subsequent sessions either append to the old
+	// file or log nothing.
 	FMotionLogger::Get().Reset();
 	FMotionLogger::Get().Init();
 
-	UE_LOG(LogTemp, Warning, TEXT("[DemosGameInstance] Session started — logger initialized."));
+	// Same lifecycle for the system-metric logger.
+	FPerfLogger::Get().Reset();
+	FPerfLogger::Get().Init();
+
+	// Drive PerfLogger sampling from the core ticker. TWeakObjectPtr keeps the
+	// callback safe if the GameInstance is torn down before the ticker fires.
+	TWeakObjectPtr<UDemosGameInstance> WeakThis(this);
+	PerfSampleHandle = FTSTicker::GetCoreTicker().AddTicker(
+		FTickerDelegate::CreateLambda([WeakThis](float /*Dt*/)
+		{
+			if (UDemosGameInstance* Self = WeakThis.Get())
+			{
+				FPerfLogger::Get().SampleOnce(Self->GetWorld());
+			}
+			return true; // keep ticking
+		}),
+		PerfSampleIntervalSeconds);
+
+	UE_LOG(LogTemp, Warning,
+		TEXT("[DemosGameInstance] Session started — loggers initialized (perf sample %.2fs)."),
+		PerfSampleIntervalSeconds);
 }
 
 void UDemosGameInstance::Shutdown()
 {
-	// Flush any remaining buffered rows before the session ends.
+	if (PerfSampleHandle.IsValid())
+	{
+		FTSTicker::GetCoreTicker().RemoveTicker(PerfSampleHandle);
+		PerfSampleHandle.Reset();
+	}
+
 	FMotionLogger::Get().Flush();
 	FMotionLogger::Get().Reset();
 
-	UE_LOG(LogTemp, Warning, TEXT("[DemosGameInstance] Session ended — logger flushed."));
+	FPerfLogger::Get().Flush();
+	FPerfLogger::Get().Reset();
+
+	UE_LOG(LogTemp, Warning, TEXT("[DemosGameInstance] Session ended — loggers flushed."));
 
 	Super::Shutdown();
 }

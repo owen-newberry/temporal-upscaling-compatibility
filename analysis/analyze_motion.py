@@ -30,6 +30,14 @@ import matplotlib.ticker as ticker
 from scipy import stats
 from sklearn.ensemble import IsolationForest
 
+# Force UTF-8 stdout so box-drawing / arrow glyphs print on the Windows console,
+# which defaults to cp1252 and otherwise crashes on Unicode section separators.
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
 # ── Config ────────────────────────────────────────────────────────────────────
 SAVED_LOGS_DIR = pathlib.Path(__file__).parent.parent / "demos" / "Saved" / "Logs"
 OUTPUT_DIR     = pathlib.Path(__file__).parent / "output"
@@ -55,7 +63,11 @@ COLORS = {
 # ── Helpers ───────────────────────────────────────────────────────────────────
 def find_latest_csv() -> pathlib.Path:
     pattern = str(SAVED_LOGS_DIR / "MotionCapture_*.csv")
-    files = sorted(glob.glob(pattern))
+    # Exclude `_archive_*` files: retired captures kept for history.
+    files = sorted(
+        f for f in glob.glob(pattern)
+        if not pathlib.Path(f).name.startswith("_archive_")
+    )
     if not files:
         sys.exit(f"No MotionCapture_*.csv found in {SAVED_LOGS_DIR}\n"
                  "Run the demo in the UE editor first.")

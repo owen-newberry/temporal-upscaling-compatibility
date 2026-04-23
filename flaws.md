@@ -4,8 +4,26 @@
 - All actions (including dropped) are logged, so the data is complete.
 - Jitter detection helps flag simulation artifacts.
 - Color and debug messages make in-editor diagnosis easy.
+- **Phantom-writer mechanism** (added post-audit): `MoverActor` includes
+  a deterministic second writer that layers a high-frequency offset on
+  top of the primary motion. In Direct mode, this second writer calls
+  `SetActorLocation` AFTER the primary → the phantom's value wins → the
+  cube exhibits visible multi-writer jitter. In Authority mode, the
+  phantom is silently rejected because it never calls
+  `AuthorityManager::SubmitInput`, so the authority only commits the
+  primary's target. This is what gives the demo its experimental
+  differentiation — without it, Direct and Authority modes produce
+  identical motion and the pattern isn't being tested.
 
 **Potential Flaws:**
+- Phantom is a single in-actor contributor, not a genuinely separate
+  actor/system. In a real game the rival writer would live in a
+  different subsystem with its own tick ordering. The demo captures
+  the **symptom** (multi-writer contamination of a transform) but
+  simplifies the **scenario** (it's implemented as two calls inside the
+  same Tick body instead of as an independent actor). A future version
+  should spawn a dedicated `APhantomWriterActor` that competes for the
+  transform in its own tick.
 - Unrealistic input loss: "Dropped" path logs every discarded input, but real network loss is more bursty/correlated with network events, not just mode toggling.
 - Mode switching: If toggled mid-session, CSV will have mixed modes, making analysis harder and less realistic.
 - No network simulation: No artificial latency, packet loss, or reordering. Test is idealized, not matching real-world network conditions.
@@ -14,7 +32,8 @@
 - Logger flush: Flushing every tick is safe for data, but could be a performance issue in a real system (not a flaw for this test, but worth noting).
 
 **Reliability:**
-- High for local, idealized authority/direct comparison.
+- High for local, idealized authority/direct comparison with a known
+  rival-writer contaminating the transform.
 - Lower for real-world networked scenarios (no latency, loss, or distributed authority).
 
 ---
@@ -23,16 +42,18 @@
 
 **Strengths:**
 - Demonstrates the classic instability of variable timestep Euler integration under spikes.
-- Fixed timestep mode uses accumulator and sub-stepping, which is robust and industry standard.
-- Spike injection is explicit and parameterized (interval, duration).
+- Fixed timestep mode uses accumulator + sub-stepping + max-frame-time clamp, which is the canonical Gaffer-On-Games pattern (robust against spiral-of-death catch-up).
+- Symplectic Euler integrator keeps the oscillator stable even at zero damping (no numerical energy gain).
+- Spike injection is explicit and parameterized (interval, duration, phase offset).
 - All steps and positions are logged for both modes.
 
 **Potential Flaws:**
 - Spike injection is artificial: real-world spikes may be less regular, more bursty, or correlated with system load, not periodic.
-- Damping is set to zero by default, which exaggerates instability for demonstration but is not realistic for most physical systems.
+- Damping is set to zero by default, which exaggerates Variable-mode instability for demonstration but is not realistic for most physical systems.
 - Only a single spring system is tested; no multi-body or coupled systems.
 - No external forces or noise: only a pure spring, so results may not generalize to more complex simulations.
 - No measurement of energy error or long-term drift, only displacement.
+- `MaxCatchUpSeconds` discards wall-clock time spent in a hitch — correct for a sim that should appear upscaler-friendly, but means the simulated clock lags real time across repeated hitches. For a game with save-state determinism this would be a design trade-off to surface.
 - No real-world frame pacing or OS-level hitches simulated (e.g., background tasks, GPU stalls).
 
 **Reliability:**

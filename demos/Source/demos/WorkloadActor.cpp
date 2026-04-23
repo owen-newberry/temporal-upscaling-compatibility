@@ -1,7 +1,10 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "WorkloadActor.h"
+#include "DemoVisuals.h"
 #include "MotionLogger.h"
+#include "Components/PointLightComponent.h"
+#include "Components/TextRenderComponent.h"
 #include "Engine/Engine.h"
 #include "HAL/PlatformTime.h"
 #include "HAL/PlatformProcess.h"
@@ -18,6 +21,12 @@ AWorkloadActor::AWorkloadActor()
 		TEXT("/Engine/BasicShapes/Cube.Cube"));
 	if (CubeMesh.Succeeded())
 		Mesh->SetStaticMesh(CubeMesh.Object);
+
+	Label = CreateDefaultSubobject<UTextRenderComponent>(TEXT("Label"));
+	Label->SetupAttachment(Mesh);
+
+	Light = CreateDefaultSubobject<UPointLightComponent>(TEXT("Light"));
+	Light->SetupAttachment(Mesh);
 }
 
 void AWorkloadActor::BeginPlay()
@@ -38,16 +47,35 @@ void AWorkloadActor::BeginPlay()
 		Mesh->SetMaterial(0, DynMaterial);
 	}
 
+	const FLinearColor ModeColor = bBudgeted
+		? FLinearColor(0.15f, 0.95f, 0.35f)
+		: FLinearColor(0.95f, 0.20f, 0.15f);
+	const FString ModeText = bBudgeted ? TEXT("BUDGETED") : TEXT("UNBUDGETED");
+	DemoVisuals::ConfigureLabel(Label, Mesh, ModeText, ModeColor);
+	DemoVisuals::ConfigureLight(Light, ModeColor);
+	bLastVisualBudgeted = bBudgeted;
+
+	TrailPoints.Reset();
+
 	UE_LOG(LogTemp, Warning, TEXT("[WorkloadActor] BeginPlay: %s | mode=%s"),
 		*GetName(), bBudgeted ? TEXT("Budgeted") : TEXT("Unbudgeted"));
 }
 
 void AWorkloadActor::ProcessTask()
 {
-	// Sleep 0.05ms per task — guaranteed cost on any hardware regardless of CPU speed.
-	// At TasksPerFrame=80 unbudgeted this is 4ms total per frame (~25fps cap).
-	// Budgeted mode cuts out after BudgetMs=2ms, keeping frame time bounded.
-	FPlatformProcess::Sleep(0.00005f);
+	// Wall-time busy loop: burn CPU until TaskDurationMs has elapsed.
+	// FPlatformProcess::Sleep() on Windows rounds up to the OS timer
+	// granularity (~1ms minimum, often 15ms), so sub-millisecond sleeps
+	// effectively return immediately and produce no measurable cost.
+	// Polling FPlatformTime::Seconds() gives us reliable microsecond-scale
+	// work that scales predictably with TaskDurationMs.
+	const double StartSec = FPlatformTime::Seconds();
+	const double BurnSec  = (double)TaskDurationMs / 1000.0;
+	volatile double Dummy = 0.0;
+	while ((FPlatformTime::Seconds() - StartSec) < BurnSec)
+	{
+		Dummy += FMath::Sin(Dummy) + 1.0;
+	}
 	TotalProcessed++;
 }
 
@@ -57,10 +85,11 @@ void AWorkloadActor::Tick(float DeltaTime)
 
 	TimeElapsed += DeltaTime;
 
-	// Refill queue each frame
+	// Refill queue each frame. Queue entries are placeholders — the actual
+	// work is parameterized by TaskDurationMs inside ProcessTask().
 	for (int32 i = 0; i < TasksPerFrame; ++i)
 	{
-		TaskQueue.Add(IterationsPerTask);
+		TaskQueue.Add(0);
 	}
 
 	// Cap queue to prevent unbounded growth if budget < tasks-per-frame
@@ -119,11 +148,38 @@ void AWorkloadActor::Tick(float DeltaTime)
 			bBudgeted ? FLinearColor(0.f, 1.f, 0.f) : FLinearColor(1.f, 0.f, 0.f));
 	}
 
+	// Refresh label + point light if mode changed after BeginPlay ran.
+	// Coordinators spawn actors with default properties, then set
+	// bBudgeted — so the first BeginPlay always captures the default
+	// "BUDGETED" label. Detect the mismatch here and update the visuals
+	// to match the authoritative bBudgeted value.
+	if (bBudgeted != bLastVisualBudgeted)
+	{
+		const FLinearColor ModeColor = bBudgeted
+			? FLinearColor(0.15f, 0.95f, 0.35f)
+			: FLinearColor(0.95f, 0.20f, 0.15f);
+		DemoVisuals::ConfigureLabel(Label, Mesh,
+			bBudgeted ? TEXT("BUDGETED") : TEXT("UNBUDGETED"),
+			ModeColor);
+		DemoVisuals::ConfigureLight(Light, ModeColor);
+		bLastVisualBudgeted = bBudgeted;
+	}
+
+	DemoVisuals::PushTrailSample(TrailPoints, NewPos);
+	DemoVisuals::DrawTrail(GetWorld(), TrailPoints,
+		bBudgeted ? FLinearColor(0.15f, 0.95f, 0.35f)
+		          : FLinearColor(0.95f, 0.20f, 0.15f));
+
+	// PositionErrorCm is irrelevant for this demo (both modes use the same
+	// time-based motion, so position will be identical across modes); pass -1.
+	// FrameWorkMs IS the demo's real metric — per-actor CPU cost this frame.
 	FMotionLogger::Get().LogRow(
 		GFrameCounter, GetWorld()->GetTimeSeconds(),
 		GetWorld()->GetMapName(),
 		GetName(), bBudgeted ? TEXT("Budgeted") : TEXT("Unbudgeted"),
-		NewPos, FrameDelta);
+		NewPos, FrameDelta,
+		/*PositionErrorCm=*/ -1.f,
+		/*FrameWorkMs=*/ static_cast<float>(FrameWorkMs));
 
 	if (GEngine)
 	{
