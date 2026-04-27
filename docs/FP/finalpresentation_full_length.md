@@ -78,6 +78,89 @@ Each pattern fixes one failure mode that breaks the upscaler's ability to reuse 
 
 ---
 
+## Fixed-Timestep — Results
+
+Same spring position system, same 300 ms hitch injected every few seconds.
+
+| Metric | Variable (naive Euler) | Fixed (sub-stepped) | Δ |
+|---|---:|---:|---:|
+| **Max Δ (cm)** | **305.9** | **200.0** (bounded by spring amplitude) | bounded |
+| **σ Δ (cm)** | **9.31** | **5.25** | **−44%** |
+| Mean Δ (cm) | 4.89 | 3.73 | — |
+| Mean FPS | 119.9 | 119.9 | identical cost |
+
+---
+
+## Time-Based Animation — Results
+
+Both cubes target the same sine-wave trajectory. One reads the wall clock
+each frame (**Time-Based**); the other advances a counter every frame (**Frame-Based**).
+
+| Metric | Frame-Based (counter) | Time-Based (wall clock) |
+|---|---:|---:|
+| **Max schedule deviation** | **400 cm** (4 meters off-target) | — (matches schedule by construction) |
+| **Mean schedule deviation** | **165 cm** | — |
+| σ Δ / frame | 3.74 cm | 3.99 cm (larger — includes honest catch-up jumps during hitches) |
+
+---
+
+## Single-Writer Motion Authority — Results
+
+Two systems both try to move the same cube every frame. One cube has an authority that controls movement; the other lets whoever writes last win.
+
+| Metric | Direct (last-write-wins) | Authority (arbitrated) | Δ |
+|---|---:|---:|---:|
+| Mean Δ / frame | 4.38 cm | 3.36 cm | primary only |
+| **σ Δ / frame** | **3.36 cm** | **1.92 cm** | **−43%** |
+| **P95 Δ** | **9.92 cm** | **5.22 cm** | **−47%** |
+| Max Δ | 80.8 cm | 57.6 cm | −29% |
+| Mean FPS | 119.8 | 119.8 | identical cost |
+
+_Identical scene, identical camera, identical rival-writer. The only difference is whether the second writer goes through the authority or writes the transform directly._
+
+---
+
+## Workload Budgeting — Results
+
+Identical per-frame CPU workload (a tight busy-loop). One actor caps itself at 2 ms per frame; the other spends whatever it needs.
+
+| Metric | Unbudgeted | Budgeted | Δ |
+|---|---:|---:|---:|
+| **Mean FPS** | **22.3** | **111.7** | **5×** |
+| Mean work / frame | 20.0 ms | 2.00 ms | budget held to configured target |
+| Max work / frame | 20.7 ms | 2.77 ms | peak clamp honored |
+| Max frame time | 116.4 ms | 98.0 ms | — |
+
+The difference is how the work is spread across frames. Budgeted mode hits a configured target exactly, mean work lands at 2.00 ms against a configured 2 ms budget.
+
+---
+
+## The Catch: Budgeting Trades Jitter for Latency
+
+Most of these patterns aren't without some drawbacks/limitations. They defer work, they don't delete it.
+
+Workload budgeting is the clearest example:
+
+- A 20 ms CPU spike becomes a smooth 2 ms / frame over 10 frames
+- Great for the upscaler (variance drops, FPS climbs 5×)
+- But deferred work is **delayed** work
+
+**Applied to the wrong system, you trade a visible problem for an invisible one:**
+
+---
+
+## The Catch: Budgeting Trades Jitter for Latency
+
+| Deferred system | Symptom |
+|---|---|
+| Player physics | Character walks through walls |
+| Input handling | Visible input lag |
+| Far-field AI | NPC frozen for 300 ms, then snaps |
+
+**The design question isn't "should I budget?" — it's "which systems can tolerate deferral?" "Which systems are low priority?"**
+
+---
+
 ## Why This Matters
 
 **For engine programmers**
@@ -98,41 +181,6 @@ Each pattern fixes one failure mode that breaks the upscaler's ability to reuse 
 
 - Upscaling makes games **more accessible to a wider range of components and platforms.**
 - This allows more players to enjoy a game especially when it leverages upscaling well, **keeping consistency and quality while increasing performance.**
-
----
-
-## What Went Well
-
-- Scheduling and planning:
-  - I was able to devote a lot of my time to this project
-  - I didn't have to deviate from the outlined milestones for each sprint
-- Analysis of design patterns:
-  - The creation of the demo projects in Unreal Engine 5 provided great insight on the effectiveness of patterns
-- Overal quality over work
-  - After spending lots of time on this research and implementation, my paper is rock solid and reasoning is sound
-
----
-
-## What Went Poorly
-
-- Learning curve with Unreal Engine 5
-  - Had to refresh C++ fundamentals 
-  - Familiarizing myself with the structure of Unreal Engine 5
-  - Tool usage took some time to learn
-- Struggle to find concrete resources 
-  - Beyond what NVIDIA/AMD puts out, finding informational sources took a lot of time to discern if they were of academic quality.
-
----
-
-## Issues I Encountered
-
-- Setting up my Unreal Project with Git
-  - Had issues with file size with the project in the Git repository
-  - Had to spend time learning what files were neccessary vs shouldnt be tracked/could be regenerated on an individual machine
-- Issues with Unreal Engine behavior with rendering mode
-  - Some functions would work only in Play In Editor, not the Standalone view
-  - Play In Editor limits the performance and could cause issues with data validity
-  - Address with debugging and leveraged AI to figure out what changes needed to be made
 
 ---
 
