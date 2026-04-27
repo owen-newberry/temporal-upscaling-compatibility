@@ -2,6 +2,8 @@
 
 This folder and `../figures/` hold **everything you need to drop into the paper** without the Unreal `demos/Saved/` tree. Regenerated on **2026-04-27** from clean captures in `demos/Saved/Logs/`.
 
+`demos/Content/L_WorkloadUnbudgeted.umap` was not committed from Windows (file lock). Re-save in UE and add in a follow-up commit if the level in git is stale for you.
+
 ## What to copy to your Mac
 
 After `git pull` on the Mac in the `ase-capstone` repo:
