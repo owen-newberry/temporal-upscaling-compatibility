@@ -139,36 +139,36 @@ The 10-week outline below matches the **weekly progress** section of the final p
 - Finalize bibliography and citations
 - Proofread and format paper
 
-**Week 5** — *code: fixed timestep & demo polish*  
+**Week 5** — 
 - Set up Unreal Engine project structure and version control
 - Develop fixed-timestep simulation (F1.1–F1.3, F4.1)
 - Adjust demo levels to better highlight upscaling-related behavior (F6.1–F6.2)
 
-**Week 6** — *code: workload & temporal coherence*  
+**Week 6** — 
 - Continue workload budgeting system (F2.1–F2.4)
 - Begin implementing temporal coherence patterns: motion authority, time-based vs frame-based motion (F3.1–F3.3)
 
-**Week 7** — *code: upscaling + iteration*  
+**Week 7** — 
 - Test all patterns with upscaling enabled (F5.1; optional DLSS/FSR/XeSS via `DemosUpscaler` when plugins are available)
 - Refine demo levels and documentation from test results (F1.4, F3.4, F6.1–F6.2)
 - Record active upscaler in performance captures where applicable (F5.2)
 
-**Week 8** — *integration & measurement*  
+**Week 8** — 
 - Exercise DLSS/FSR (or TSR) in project settings and `DemosUpscaler` (F5.1, F5.2)
 - Run comprehensive performance tests on all patterns
 - Gather and analyze performance and visual quality data; qualitative review alongside metrics (F1.4, F2.5–F2.6, F4.1–F4.6, F5.3)
 
-**Week 9** — *environment, scripts, paper data*  
+**Week 9** — 
 - Add environmental / in-level elements for temporal testing (F6.4, combined-stress and visuals)
 - Improve data collection scripts (`analysis/`, logging)
 - Update research paper with empirical results
 
-**Week 10** — *submission deliverables*  
+**Week 10** —  
 - Prepare and record demonstration video (`docs/FP/demos.mp4` and pattern clips under `videos/`)
 - Create Marp presentation PDF for final presentation (`docs/FP/finalpresentation.pdf`)
 - Ensure all deliverables are accessible on GitHub and Canvas; proofread and format materials
 
-**Final deliverables (aligned with course rubric):**
+**Final deliverables:**
 - Research paper and updated empirical sections
 - UE5 `demos/` project and pattern maps
 - Performance CSVs, `analysis/output/` aggregates and reports, demo video, final presentation PDF
