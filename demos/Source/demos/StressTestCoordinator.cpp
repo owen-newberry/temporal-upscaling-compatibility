@@ -2,6 +2,7 @@
 
 #include "StressTestCoordinator.h"
 
+#include "DemosDebug.h"
 #include "Engine/World.h"
 #include "TimestepActor.h"
 #include "MotionModelActor.h"
@@ -44,6 +45,7 @@ void AStressTestCoordinator::BeginPlay()
 		TEXT("[StressTest] Spawned %d actors | workload=%s"),
 		SpawnedActors.Num(),
 		bUnbudgetedWorkload ? TEXT("Unbudgeted") : TEXT("Budgeted"));
+	DemosLogCoordinatorBeginPlay(this, SpawnedActors.Num(), bSpawnWorkloadPair, bUnbudgetedWorkload);
 }
 
 void AStressTestCoordinator::SpawnTimestepPair(const FVector& Origin)
@@ -165,6 +167,8 @@ void AStressTestCoordinator::SpawnWorkloadPair(const FVector& Origin)
 	// Both actors get the same mode — flip the coordinator's toggle to switch
 	// the scene between "all budgeted" (good) and "all unbudgeted" (stress).
 	const bool bBudgeted = !bUnbudgetedWorkload;
+	int32 WorkOk = 0;
+	int32 WorkFail = 0;
 
 	for (int32 i = 0; i < 2; ++i)
 	{
@@ -176,6 +180,12 @@ void AStressTestCoordinator::SpawnWorkloadPair(const FVector& Origin)
 		{
 			Work->bBudgeted = bBudgeted;
 			SpawnedActors.Add(Work);
+			++WorkOk;
+		}
+		else
+		{
+			++WorkFail;
 		}
 	}
+	DemosLogWorkloadPairSpawn(this, WorkOk, WorkFail, bBudgeted);
 }

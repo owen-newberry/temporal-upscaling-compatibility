@@ -2,6 +2,7 @@
 
 #include "WorkloadSwarmCoordinator.h"
 
+#include "DemosDebug.h"
 #include "Engine/World.h"
 #include "Math/UnrealMathUtility.h"
 #include "WorkloadActor.h"
@@ -18,6 +19,7 @@ void AWorkloadSwarmCoordinator::BeginPlay()
 	UWorld* World = GetWorld();
 	if (!World)
 	{
+		DemosLogSwarmNullWorld(this);
 		return;
 	}
 
@@ -78,4 +80,6 @@ void AWorkloadSwarmCoordinator::BeginPlay()
 		bBudgeted ? TEXT("Budgeted") : TEXT("Unbudgeted"),
 		BudgetMs,
 		TasksPerFrame * TaskDurationMs);
+	DemosLogSwarmDone(this, SpawnedActors.Num(),
+		bBudgeted ? TEXT("Budgeted") : TEXT("Unbudgeted"));
 }

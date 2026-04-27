@@ -1,8 +1,11 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "DemosGameInstance.h"
+#include "DemosDebug.h"
 #include "MotionLogger.h"
 #include "PerfLogger.h"
+#include "Containers/Ticker.h"
+#include "Templates/SharedPointer.h"
 
 void UDemosGameInstance::Init()
 {
@@ -36,6 +39,30 @@ void UDemosGameInstance::Init()
 	UE_LOG(LogTemp, Warning,
 		TEXT("[DemosGameInstance] Session started — loggers initialized (perf sample %.2fs)."),
 		PerfSampleIntervalSeconds);
+
+#if DEMOS_STANDALONE_DIAGNOSTICS
+	// UGameInstance::Init can run before a UWorld exists. Log map / world type
+	// a quarter-second later so Standalone vs PIE and the real map are visible.
+	{
+		TWeakObjectPtr<UDemosGameInstance> WSelf(this);
+		const TSharedPtr<float> Acc = TSharedPtr<float>(new float(0.0f));
+		FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda(
+			[WSelf, Acc](float DeltaTime)
+		{
+			*Acc += DeltaTime;
+			if (*Acc < 0.25f)
+			{
+				return true; // keep ticking
+			}
+			if (UDemosGameInstance* G = WSelf.Get())
+			{
+				DemosLogStartupMapContext(G);
+			}
+			return false; // one shot
+		}),
+		0.0f);
+	}
+#endif
 }
 
 void UDemosGameInstance::Shutdown()
