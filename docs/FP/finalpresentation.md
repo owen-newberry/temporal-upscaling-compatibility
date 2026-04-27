@@ -82,7 +82,7 @@ Each pattern fixes one failure mode that breaks the upscaler's ability to reuse 
 
 ---
 
-## Live Demo
+## Demo
 
 - [Recorded Demos](https://youtu.be/zN_T3va4zfw)
 
