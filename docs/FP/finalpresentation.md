@@ -72,6 +72,17 @@ Each pattern fixes one failure mode that breaks the upscaler's ability to reuse 
 
 ---
 
+## Numbers
+
+- Research paper finished and published
+- Presented at NKU Celebration of Student Research
+  
+- 100% burndown rate
+- (6/6) features implemented
+- (27/2) requirements implemented
+
+---
+
 ## Live Demo
 
 - [Recorded Demos](https://youtu.be/zN_T3va4zfw)
@@ -98,6 +109,16 @@ Each pattern fixes one failure mode that breaks the upscaler's ability to reuse 
 
 - Upscaling makes games **more accessible to a wider range of components and platforms.**
 - This allows more players to enjoy a game especially when it leverages upscaling well, **keeping consistency and quality while increasing performance.**
+
+---
+
+## What I learned
+
+- Unreal Engine 5 basics
+  - UE5 has multiple built in functions for physics and animations
+  - However these functionalities don't cover all possible use cases
+- TSR (upscaling) integration in Unreal Engine 5
+  - TSR is native to UE5, but integration is not as simple as a checkbox
 
 ---
 
@@ -133,6 +154,14 @@ Each pattern fixes one failure mode that breaks the upscaler's ability to reuse 
   - Some functions would work only in Play In Editor, not the Standalone view
   - Play In Editor limits the performance and could cause issues with data validity
   - Address with debugging and leveraged AI to figure out what changes needed to be made
+
+---
+
+## How AI Improved this Project
+
+- **Research:** Used AI to help explain different topics for deep understanding, find resources, etc.
+- **Debugging:** Used an AI agent to help solve issue with the codebase, whether simple C++ errors or UE5 specific issues
+- **Implementation:** Experimented with using AI agents to write parts of the code, like the Python data analysis pipeline, some C++ classes for UE5 usage
 
 ---
 
