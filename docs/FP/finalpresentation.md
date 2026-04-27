@@ -46,8 +46,7 @@ predictions become **wrong**. The result: **smearing, ghosting, flicker, and jit
 
 ## The Solution
 
-Identify four **software design patterns** for game-development
-that each fix one specific way real games violate temporal predictability.
+Identify four **software design patterns** for game-development that each fix one specific way real games violate temporal predictability. I achieved this through a **research paper** identifying and explaining these patterns, accompanied with **demos built in Unreal Engine 5** that demonstrate and provided data supporting the effectiveness of these patterns.
 
 ---
 
