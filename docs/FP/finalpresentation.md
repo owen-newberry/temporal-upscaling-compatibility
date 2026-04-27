@@ -72,7 +72,7 @@ Each pattern fixes one failure mode that breaks the upscaler's ability to reuse 
 
 ---
 
-## Numbers
+## Metrics/Numbers
 
 - Research paper finished and published
 - Presented at NKU Celebration of Student Research
