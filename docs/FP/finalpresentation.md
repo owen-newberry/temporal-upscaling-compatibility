@@ -60,38 +60,27 @@ that each fix one specific way real games violate temporal predictability.
 | 3 | **Single-writer motion authority** | Two systems fighting over one transform |
 | 4 | **Workload budgeting** | Per-frame CPU cost that spikes during heavy work |
 
-Sources: Gaffer On Games · Valve GDC networking talks · NVIDIA developer
-docs · console-platform performance guidelines.
-
-Each pattern fixes **one** failure mode that breaks the upscaler's ability
-to reuse information from previous frames.
+Each pattern fixes one failure mode that breaks the upscaler's ability to reuse information from previous frames.
 
 ---
 
 ## The Methodology
 
-1. **Four minimal demos** in Unreal Engine 5.7 — each has a *good design*
-   cube (pattern applied) and a *bad design* cube (pattern violated).
-2. An in-engine **logging harness** (`FMotionLogger` + `FPerfLogger`)
-   capturing per-frame motion, timing, and CPU work to CSV.
-3. A **Python analysis pipeline** (pandas, matplotlib, scikit-learn) that
-   produces a self-updating performance report at the end of every session.
+1. Created visual demos in Unreal Engine 5.7 — each has a good design actor (pattern applied) and a bad design actor (pattern violated).
+2. An in-engine logging harness (`FMotionLogger` + `FPerfLogger`) capturing per-frame motion, timing, and CPU work to CSV.
+3. A Python analysis pipeline that produces a self-updating performance report at the end of every session.
 
 ---
 
 ## Live Demo
 
-- [Fixed Timestep](../videos/FixedTimestep.mp4)
-- [Time Based Animation](../videos/TimeBasedAnimation.mp4)
-- [Single Writer Motion Authority](../videos/MotionAuthority.mp4)
-- [Workload Budgeting - Unbudgeted](../videos/WorkloadUnbudgeted.mp4)
-- [Workload Budgeting - Budgeted](../videos/WorkloadBudgeted.mp4)
+- [Record Demos]()
 
 ---
 
 ## Fixed-Timestep — Results
 
-Same spring, same 300 ms hitch injected every few seconds.
+Same spring position system, same 300 ms hitch injected every few seconds.
 
 | Metric | Variable (naive Euler) | Fixed (sub-stepped) | Δ |
 |---|---:|---:|---:|
@@ -105,8 +94,7 @@ Same spring, same 300 ms hitch injected every few seconds.
 ## Time-Based Animation — Results
 
 Both cubes target the same sine-wave trajectory. One reads the wall clock
-each frame (**Time-Based**); the other advances a counter every frame
-assuming a fixed 60 FPS (**Frame-Based**).
+each frame (**Time-Based**); the other advances a counter every frame (**Frame-Based**).
 
 | Metric | Frame-Based (counter) | Time-Based (wall clock) |
 |---|---:|---:|
@@ -118,8 +106,7 @@ assuming a fixed 60 FPS (**Frame-Based**).
 
 ## Single-Writer Motion Authority — Results
 
-Two systems both try to move the same cube every frame.
-One cube has an **authority** that arbitrates; the other lets whoever writes last win.
+Two systems both try to move the same cube every frame. One cube has an authority that controls movement; the other lets whoever writes last win.
 
 | Metric | Direct (last-write-wins) | Authority (arbitrated) | Δ |
 |---|---:|---:|---:|
@@ -135,8 +122,7 @@ _Identical scene, identical camera, identical rival-writer. The only difference 
 
 ## Workload Budgeting — Results
 
-Identical per-frame CPU workload (a tight busy-loop). One actor caps
-itself at 2 ms per frame; the other spends whatever it needs.
+Identical per-frame CPU workload (a tight busy-loop). One actor caps itself at 2 ms per frame; the other spends whatever it needs.
 
 | Metric | Unbudgeted | Budgeted | Δ |
 |---|---:|---:|---:|
@@ -145,15 +131,13 @@ itself at 2 ms per frame; the other spends whatever it needs.
 | Max work / frame | 20.7 ms | 2.77 ms | peak clamp honored |
 | Max frame time | 116.4 ms | 98.0 ms | — |
 
-Same total work. Same code. Same actor. The only difference is how the
-work is **spread across frames**. Budgeted mode hits its configured
-target exactly, mean work lands at 2.00 ms against a configured 2 ms budget.
+The difference is how the work is spread across frames. Budgeted mode hits a configured target exactly, mean work lands at 2.00 ms against a configured 2 ms budget.
 
 ---
 
 ## The Catch: Budgeting Trades Jitter for Latency
 
-Most of these patterns aren't without some drawbacks. They defer work, they don't delete it.
+Most of these patterns aren't without some drawbacks/limitations. They defer work, they don't delete it.
 
 Workload budgeting is the clearest example:
 
@@ -173,9 +157,7 @@ Workload budgeting is the clearest example:
 | Input handling | Visible input lag |
 | Far-field AI | NPC frozen for 300 ms, then snaps |
 
-**The design question isn't "should I budget?" — it's "which systems can tolerate deferral?"**
-
-> **Predictable, not faster.**
+**The design question isn't "should I budget?" — it's "which systems can tolerate deferral?" "Which systems are low priority?"**
 
 ---
 
@@ -185,16 +167,28 @@ Workload budgeting is the clearest example:
 
 - Four concrete, code-level changes with **measured impact**
 - Tooling to validate their own codebase against the same metrics
+- Better perfomance and quality -> better user experience -> more players/better player retention
 
 **For players**
 
 - Fewer smearing / ghosting / stutter artifacts in games built on these
   principles
+- Games with high performance and quality with minimal visual issues are more enjoyable
 
 ---
 
-## Thanks — Questions Welcome
+## Why This Matters
+
+- Upscaling makes games **more accessible to a wider range of components and platforms.**
+- This allows more players to enjoy a game especially when it leverages upscaling well, **keeping consistency and quality while increasing performance.**
+
+---
+
+## Thanks
 
 **Owen Newberry** · ASE Capstone · Spring 2026
 
 - Repo: [github.com/owen-newberry/temporal-upscaling-compatibility](https://github.com/owen-newberry/temporal-upscaling-compatibility)
+- Paper: [Software Design Patterns for Temporal Upscaling Compatibility and Performance in Real-Time Games](https://github.com/owen-newberry/temporal-upscaling-compatibility/blob/main/docs/ResearchPaper/paper.pdf)
+- [Video Demonstration](https://github.com/owen-newberry/temporal-upscaling-compatibility/blob/main/docs/FP/demos.mp4) (download)
+- [Video Demonstration]() (YouTube, no download)
