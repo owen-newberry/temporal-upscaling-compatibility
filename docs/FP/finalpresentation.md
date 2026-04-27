@@ -112,16 +112,6 @@ Each pattern fixes one failure mode that breaks the upscaler's ability to reuse 
 
 ---
 
-## What I learned
-
-- Unreal Engine 5 basics
-  - UE5 has multiple built in functions for physics and animations
-  - However these functionalities don't cover all possible use cases
-- TSR (upscaling) integration in Unreal Engine 5
-  - TSR is native to UE5, but integration is not as simple as a checkbox
-
----
-
 ## What Went Well
 
 - Scheduling and planning:
@@ -134,19 +124,24 @@ Each pattern fixes one failure mode that breaks the upscaler's ability to reuse 
 
 ---
 
-## What Went Poorly
+## What I learned
 
+- Unreal Engine 5 features
+  - UE5 has multiple built in functions for physics and animations
+  - However these functionalities don't cover all possible use cases
+- TSR (upscaling) integration in Unreal Engine 5
+  - TSR is native to UE5, but integration is not as simple as a checkbox
 - Learning curve with Unreal Engine 5
   - Had to refresh C++ fundamentals 
   - Familiarizing myself with the structure of Unreal Engine 5
   - Tool usage took some time to learn
-- Struggle to find concrete resources 
-  - Beyond what NVIDIA/AMD puts out, finding informational sources took a lot of time to discern if they were of academic quality.
 
 ---
 
 ## Issues I Encountered
 
+- Struggle to find concrete resources 
+  - Beyond what NVIDIA/AMD puts out, finding informational sources took a lot of time to discern if they were of academic quality.
 - Setting up my Unreal Project with Git
   - Had issues with file size with the project in the Git repository
   - Had to spend time learning what files were neccessary vs shouldnt be tracked/could be regenerated on an individual machine
@@ -162,6 +157,7 @@ Each pattern fixes one failure mode that breaks the upscaler's ability to reuse 
 - **Research:** Used AI to help explain different topics for deep understanding, find resources, etc.
 - **Debugging:** Used an AI agent to help solve issue with the codebase, whether simple C++ errors or UE5 specific issues
 - **Implementation:** Experimented with using AI agents to write parts of the code, like the Python data analysis pipeline, some C++ classes for UE5 usage
+- **Writing review:** used AI to make sure my writing was comprehensible and that I was covering all of the important topics, made sure my paper structure was optimized
 
 ---
 
