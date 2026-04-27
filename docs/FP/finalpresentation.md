@@ -74,7 +74,7 @@ Each pattern fixes one failure mode that breaks the upscaler's ability to reuse 
 
 ## Live Demo
 
-- [Record Demos]()
+- [Recorded Demos](https://youtu.be/zN_T3va4zfw)
 
 ---
 
@@ -191,4 +191,4 @@ Workload budgeting is the clearest example:
 - Repo: [github.com/owen-newberry/temporal-upscaling-compatibility](https://github.com/owen-newberry/temporal-upscaling-compatibility)
 - Paper: [Software Design Patterns for Temporal Upscaling Compatibility and Performance in Real-Time Games](https://github.com/owen-newberry/temporal-upscaling-compatibility/blob/main/docs/ResearchPaper/paper.pdf)
 - [Video Demonstration](https://github.com/owen-newberry/temporal-upscaling-compatibility/blob/main/docs/FP/demos.mp4) (download)
-- [Video Demonstration]() (YouTube, no download)
+- [Video Demonstration](https://youtu.be/zN_T3va4zfw) (YouTube, no download)
