@@ -2,13 +2,22 @@
 
 ## Project Description
 
-This capstone investigates what makes games actually compatible with modern GPU upscaling (DLSS, FSR) and frame generation. I'm building a game prototype to apply and validate specific architectural patterns identified through research.
+This capstone investigates what makes games actually compatible with modern GPU upscaling (DLSS, FSR) and frame generation. The code lives in a small Unreal Engine 5 C++ project plus a Python analysis pipeline: this repository is a research prototype.
 
 The problem is straightforward: upscaling tech like DLSS and FSR are everywhere now, but there's surprisingly little concrete guidance on how to structure your code so they actually work well. Student and indie projects constantly break temporal reconstruction without realizing it—bad frame pacing, inconsistent motion vectors, unstable simulation logic.
 
-I'm implementing three core patterns (fixed-timestep simulation, workload budgeting, temporal coherence) identified in my research paper and measuring their real-world performance. The game creates realistic stress conditions with AI workloads and environmental effects, making it a good test bed.
+**Repository layout (high level):**
 
-Deliverables: research paper analyzing GPU hardware's impact on game architecture, working game prototype demonstrating the patterns, and performance data validating the approach.
+| Path | Role |
+|------|------|
+| `demos/` | UE5 `demos` project: four pattern validation maps (`L_MotionAuthority`, `L_FixedTimestep`, `L_TimeBasedAnim`, workload `L_WorkloadBudgeted` / `L_WorkloadUnbudgeted`) plus a combined-stress level (`L_CombinedStress`), C++ actors, and CSV log output under `demos/Saved/Logs/`. |
+| `analysis/` | Python: aggregate motion/perf CSVs, optional motion-jitter charts, and Markdown performance reports. |
+| `docs/` | Research paper, presentations, and pattern quick-reference. |
+| `videos/` | Screen captures of each pattern demo. |
+
+The UE project demonstrates three architectural patterns (fixed-timestep integration, per-frame CPU workload budgeting, and temporal coherence via motion authority and time-based motion) and measures their effects with logged captures and reports.
+
+Deliverables: research paper, working UE5 prototype in `demos/`, and performance data and generated reports in `analysis/output/`.
 
 ---
 
@@ -34,109 +43,87 @@ I'm implementing patterns identified through research to demonstrate their pract
 
 ## Features & Requirements
 
-### Feature 1: Fixed-Timestep Simulation Pattern
+### Feature 1: Fixed-Timestep Simulation
 
 | ID | User Story |
 |----|------------|
-| F1.1 | As a developer, I should separate simulation tick from render frame |
-| F1.2 | As a system, simulation should produce deterministic output |
-| F1.3 | As a developer, I should interpolate visual state between simulation ticks |
-| F1.4 | As a developer, I should validate motion vector stability |
+| F1.1 | As a developer, I should separate simulation integration from the variable render frame (fixed-rate sub-steps with an accumulator; render `Tick` reads the latest integrated state). |
+| F1.2 | As a system, fixed-timestep mode should produce stable, replayable oscillator behavior; variable mode shows divergence under the same inputs when spikes are injected. |
+| F1.3 | As a developer, I should cap simulation catch-up per frame (`MaxCatchUpSeconds`) so hitches do not advance unbounded sub-steps in a single display frame. |
+| F1.4 | As a developer, I should validate motion stability via `MotionLogger` CSV exports and `analysis/analyze_motion.py` / `aggregate_metrics.py` (position delta and jitter, not a separate in-editor MV debug mode). |
 
-### Feature 2: Workload Budgeting System
-
-| ID | User Story |
-|----|------------|
-| F2.1 | As a developer, I should implement per-frame AI time budgets |
-| F2.2 | As a system, I should time-slice expensive AI operations |
-| F2.3 | As a developer, I should prioritize AI tasks by importance |
-| F2.4 | As a system, I should defer non-critical AI work when under load |
-| F2.5 | As a developer, I should log budget usage and overruns |
-| F2.6 | As a developer, I should measure frame-time stability improvement |
-
-### Feature 3: Temporal Coherence Patterns
+### Feature 2: Workload Budgeting (CPU work per frame)
 
 | ID | User Story |
 |----|------------|
-| F3.1 | As a developer, I should implement single-writer motion authority |
-| F3.2 | As a system, motion vectors should remain coherent across frames |
-| F3.3 | As a developer, I should convert effects to time-based updates |
-| F3.4 | As a system, I should produce deterministic visual output |
+| F2.1 | As a developer, I should implement a per-actor, per-frame wall-clock budget (`BudgetMs` on `AWorkloadActor`). |
+| F2.2 | As a system, I should time-slice work: a queue of identical synthetic tasks runs until the budget is exhausted; the rest is deferred. |
+| F2.3 | As a system, deferred tasks should carry over to later frames (there is a single task queue, not a multi-priority job scheduler with named importance levels). |
+| F2.4 | As a developer, I should compare budgeted vs unbudgeted swarms side-by-side (`AWorkloadSwarmCoordinator`) to show frame-time impact at scale. |
+| F2.5 | As a developer, I should log per-actor work time in `FrameWorkMs` (MotionLogger) to correlate motion error with CPU load. |
+| F2.6 | As a developer, I should quantify frame-time and delta stability in `analysis/aggregate_metrics.py` (e.g. work-time columns, FPS spread). |
 
-### Feature 4: Performance Measurement Framework
-
-| ID | User Story |
-|----|------------|
-| F4.1 | As a developer, I should collect frame-time metrics |
-| F4.2 | As a developer, I should measure CPU/GPU utilization |
-| F4.3 | As a developer, I should track memory usage and allocation patterns |
-| F4.4 | As a developer, I should track 1% low and 0.1% low FPS |
-| F4.5 | As a developer, I should export performance data for analysis |
-| F4.6 | As a system, I should generate automated performance reports |
-
-### Feature 5: DLSS/FSR Integration and Validation
+### Feature 3: Temporal Coherence (Authority & time-based motion)
 
 | ID | User Story |
 |----|------------|
-| F5.1 | As a developer, I should integrate DLSS and/or FSR into the prototype |
-| F5.2 | As a developer, I should test all patterns with upscaling enabled |
-| F5.3 | As a system, I should measure upscaling performance impact |
-| F5.4 | As a developer, I should validate visual quality and temporal stability |
+| F3.1 | As a developer, I should implement single-writer motion: one authority commits the transform; a second “phantom” path illustrates the failure mode in Direct mode. |
+| F3.2 | As a system, the demo should show coherent per-frame position deltas in Authority mode vs conflicted motion in Direct mode (again validated via capture + metrics). |
+| F3.3 | As a developer, I should contrast time-based motion (`WorldTime` sine) with frame-based steps that assume a fixed FPS on `AMotionModelActor`. |
+| F3.4 | As a system, the time-based path should stay consistent under simulated hitches; frame-based motion should drift. |
 
-### Feature 6: Game Prototype (Stress-Test Context)
+### Feature 4: Performance Measurement and Export
 
 | ID | User Story |
 |----|------------|
-| F6.1 | As a developer, I should create a confined test environment |
-| F6.2 | As a developer, I should implement player movement and interaction |
-| F6.3 | As a developer, I should add AI entity with variable workload |
-| F6.4 | As a developer, I should include environmental effects for testing |
+| F4.1 | As a developer, I should collect per-frame / per-actor data via `FMotionLogger` (positions, mode, `FrameWorkMs` where applicable). |
+| F4.2 | As a developer, I should sample frame time, RHI GPU frame cycles, and process memory via `FPerfLogger`. |
+| F4.3 | As a developer, I should log memory stats (`UsedPhysicalMB`, etc.) alongside timing in `PerformanceCapture_*.csv`. |
+| F4.4 | As a developer, I should compute 1% low and 0.1% low FPS in `analysis/aggregate_metrics.py`. |
+| F4.5 | As a developer, I should export captures as CSV under `demos/Saved/Logs/` for off-line analysis. |
+| F4.6 | As a system, `analysis/generate_report.py` should build `analysis/output/performance_report.md` from aggregated runs. |
 
----
+### Feature 5: Temporal Upscaling Modes and Validation
 
-## Project Documentation
+| ID | User Story |
+|----|------------|
+| F5.1 | As a developer, I should run the project with Unreal’s TSR path by default. |
+| F5.2 | As a system, I should **attribute** `PerfLogger` samples to a named upscaler so analysis can compare impact. |
+| F5.3 | As a developer, I should support qualitative and metric validation (recorded `videos/`, motion captures, and report text), not a built-in image-quality ground-truth suite in-engine. |
 
-- [Project Plan Presentation](https://github.com/owen-newberry/ase-capstone/blob/main/docs/PPP/pdf/ppp.pdf)
+### Feature 6: Prototype & Stress Context
+
+| ID | User Story |
+|----|------------|
+| F6.1 | As a developer, I should use isolated, editor-authored levels and optional coordinators instead of a single open-world map. |
+| F6.2 | As a developer, I should use scripted / oscillating actors and cameras to exhibit each pattern. |
+| F6.3 | As a developer, I should use synthetic CPU workload actors and swarms to stand in for variable-cost “AI” work. |
+| F6.4 | As a developer, I should use in-level visuals (e.g. labels, materials, stress layout in `AStressTestCoordinator`) to make hitch behavior obvious on screen and on capture. |
 
 ---
 
 ## Schedule & Milestones
 
 **Two-part capstone:**
-1. **Research Paper** — How GPU advancements (especially AI-focused hardware like Blackwell) are changing game development workflows and architecture patterns
-2. **Code Project** — Building and testing those patterns in a real game
+1. **Research paper** — GPU evolution, engine case studies, and software patterns for upscaler-friendly game architecture
+2. **Code + analysis** — UE5 `demos/` prototype, CSV captures, and Python `analysis/` pipeline  
 
-### Sprint 1 (4 weeks) — Research Paper Completion
-**Start Date:** February 2, 2026  
-**Primary Deliverable:** Initial research phase including literature review, case study analysis, and theoretical framework development
+The 10-week outline below matches the **weekly progress** section of the final project self-evaluation rubric (submitted to Canvas; same week-by-week text as the course artifact).
 
-**Research Focus:**
-- How GPU advancements (Blackwell architecture, AI integration) reshape game development
-- Software engineering pattern evolution in response to hardware changes
-- Impact of AI-driven rendering (DLSS, FSR, frame generation) on development workflows
-- Analysis of modern game engines (Unreal Engine 5, Unity) adapting to new GPU capabilities
-
-### Sprint 1 (4 weeks) — Research Paper Completion
-**Start Date:** February 2, 2026  
-**Primary Deliverable:** Complete research paper
-
-**Research Work (Priority):**
-
-**Week 1 (Feb 2-8): Historical and Technical Foundation**
+**Week 1**
 - Survey academic and industry literature on GPU evolution
 - Establish architectural inflection points in gaming hardware
 - Document traditional rendering pipelines vs. AI-integrated approaches
 - Read Nvidia Blackwell and Ada Lovelace technical documentation
 - Begin drafting introduction section
 
-**Week 2 (Feb 9-15): Case Study Analysis & Writing**
+**Week 2**
 - Unreal Engine 5 (Lumen/Nanite architecture) documentation deep-dive
-- Unity's ECS/DOTS framework for parallel processing analysis
+- Unity’s ECS/DOTS framework for parallel processing analysis
 - DLSS/FSR technical implementation and SDK documentation
-- Watch GDC talks on modern engine architecture
-- Write methodology section and begin case study analysis sections
+- Write methodology section and begin analysis sections
 
-**Week 3 (Feb 16-22): Blackwell Deep Dive & Synthesis**
+**Week 3**
 - Nvidia Blackwell technical documentation and SDK analysis
 - Ray tracing vs. rasterization performance implications research
 - Neural rendering and frame generation impact on software design
@@ -144,65 +131,47 @@ I'm implementing patterns identified through research to demonstrate their pract
 - Write findings and analysis sections
 - Draft conclusions
 
-**Week 4 (Feb 23-29): Writing, Revision & Finalization**
+**Week 4**
 - Identify recurring engineering patterns from research
 - Connect hardware capabilities to software design decisions
 - Complete all sections of research paper
 - Comprehensive revision and editing
 - Finalize bibliography and citations
-- Proofread and format final paper
-- Submit completed research paper
+- Proofread and format paper
 
-**Code Preparation:**
+**Week 5** — *code: fixed timestep & demo polish*  
+- Set up Unreal Engine project structure and version control
+- Develop fixed-timestep simulation (F1.1–F1.3, F4.1)
+- Adjust demo levels to better highlight upscaling-related behavior (F6.1–F6.2)
 
-**Weeks 1-4:**
-- Engine selection based on research findings
-- Install engine and familiarize with tools (minimal time)
-- Review DLSS/FSR SDK documentation (supports research)
-- Plan project architecture (can inform paper)
+**Week 6** — *code: workload & temporal coherence*  
+- Continue workload budgeting system (F2.1–F2.4)
+- Begin implementing temporal coherence patterns: motion authority, time-based vs frame-based motion (F3.1–F3.3)
 
-### Sprint 2 (6 weeks) — Code Implementation & Validation
-**Start Date:** March 16, 2026
-**Primary Deliverable:** Working game prototype implementing validated architectural patterns with performance analysis
+**Week 7** — *code: upscaling + iteration*  
+- Test all patterns with upscaling enabled (F5.1; optional DLSS/FSR/XeSS via `DemosUpscaler` when plugins are available)
+- Refine demo levels and documentation from test results (F1.4, F3.4, F6.1–F6.2)
+- Record active upscaler in performance captures where applicable (F5.2)
 
-**Phase 1: Core Pattern Implementation (Weeks 1-3 — Mar 2-22)**
-**Features: F1.1-F1.5, F2.1-F2.5, F3.1-F3.5, F6.1-F6.2**
+**Week 8** — *integration & measurement*  
+- Exercise DLSS/FSR (or TSR) in project settings and `DemosUpscaler` (F5.1, F5.2)
+- Run comprehensive performance tests on all patterns
+- Gather and analyze performance and visual quality data; qualitative review alongside metrics (F1.4, F2.5–F2.6, F4.1–F4.6, F5.3)
 
-- Set up project structure and version control
-- Create test environment (Feature F6.1)
-- Implement basic player movement and interaction (Feature F6.2)
-- Implement fixed-timestep simulation (Features F1.1-F1.3)
-- Add workload budgeting system (Features F2.1-F2.4)
-- Implement temporal coherence patterns (Features F3.1-F3.3)
-- Set up performance profiling tools (Feature F4.1)
-- Measure pattern performance (Features F1.4-F1.5, F2.5, F3.4-F3.5)
+**Week 9** — *environment, scripts, paper data*  
+- Add environmental / in-level elements for temporal testing (F6.4, combined-stress and visuals)
+- Improve data collection scripts (`analysis/`, logging)
+- Update research paper with empirical results
 
-**Phase 2: DLSS/FSR Integration (Weeks 4-5 — Mar 23-Apr 5)**
-**Features: F4.2-F4.5, F5.1-F5.5, F6.3-F6.4**
+**Week 10** — *submission deliverables*  
+- Prepare and record demonstration video (`docs/FP/demos.mp4` and pattern clips under `videos/`)
+- Create Marp presentation PDF for final presentation (`docs/FP/finalpresentation.pdf`)
+- Ensure all deliverables are accessible on GitHub and Canvas; proofread and format materials
 
-- Integrate DLSS and/or FSR (Feature F5.1)
-- Test all patterns with upscaling enabled (Feature F5.2)
-- Complete AI entity with variable workload (Feature F6.3)
-- Add environmental effects for temporal testing (Feature F6.4)
-- Complete performance measurement framework (Features F4.2-F4.5)
-- Measure upscaling performance impact (Feature F5.3)
-- Capture visual quality data (Features F5.4-F5.5)
-
-**Phase 3: Validation & Documentation (Week 6 — Apr 6-12)**
-**Features: F6.5**
-
-- Stress-test all patterns with full prototype (Feature F6.5)
-- Run comprehensive performance tests
-- Generate performance graphs and analysis
-- Create system architecture diagrams
-- Write implementation guide documenting patterns
-- Prepare presentation materials
-
-**Final Deliverables (End of Sprint 2):**
-- Working game prototype demonstrating all patterns
-- Performance analysis report
-- Implementation guide documenting patterns
-- System architecture diagrams
-- Presentation materials
+**Final deliverables (aligned with course rubric):**
+- Research paper and updated empirical sections
+- UE5 `demos/` project and pattern maps
+- Performance CSVs, `analysis/output/` aggregates and reports, demo video, final presentation PDF
+- Learning-with-AI Marp PDFs and peer evaluation (see course submission checklist)
 
 ---
