@@ -5,6 +5,10 @@
 copilot/
 prompts/
 
+# Large local presentation exports (keep md in git; copy videos by hand)
+docs/FP/*.mp4
+docs/FP/*.pdf
+
 # VS Code workspace settings (machine-specific)
 .vscode/
 

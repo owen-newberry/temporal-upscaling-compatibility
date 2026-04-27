@@ -1,6 +1,16 @@
 # Mac LLM: paper data & repo check
 
-Paste this into Cursor/Claude on your Mac after `git pull` in `ase-capstone`.
+Paste this into Cursor/Claude on your Mac after `git pull` in the repo (`ase-capstone` or **`temporal-upscaling-compatibility`** — GitHub may redirect to the latter URL).
+
+## Tracked vs gitignored (so you are not confused)
+
+| Path | Tracked? |
+|------|----------|
+| `docs/ResearchPaper/paper_data/*` | Yes — tables + CSV copy for the paper |
+| `docs/ResearchPaper/figures/*.png` | Yes — final figures |
+| `analysis/output/*` | **No** — scratch; regenerate into `paper_data/` if needed |
+| `demos/Saved/**` | **No** — Unreal logs stay on the capture machine unless you copy them |
+| `docs/FP/*.mp4`, `docs/FP/*.pdf` | **No** — large local exports; use `finalpresentation.md` in git |
 
 ## Goals
 
