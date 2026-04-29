@@ -1,9 +1,5 @@
 # Final Paper Results — Demo Captures, Tables, and Figures
 
-This document is the deliverable that fills the two `[TBD]` tables and four
-figure placeholders in *"Software Design Patterns for Temporal Upscaling
-Compatibility and Performance in Real-Time Games"* (honors thesis 2026).
-
 All numbers are produced from the canonical `MotionCapture_*.csv` files in
 `demos/Saved/Logs/`, aggregated by `analysis/aggregate_metrics.py` and plotted
 by `analysis/make_paper_figures.py`. None of the LaTeX in `honor2026` has been
