@@ -46,7 +46,7 @@ I'm implementing patterns identified through research to demonstrate their pract
 | Area | Technologies |
 |------|----------------|
 | **Game prototype** | Unreal Engine **5.7**, C++ (`demos` game module), editor-authored levels and demo maps |
-| **Temporal upscaling** | Unreal **TSR** by default; optional **DLSS** / **FSR** / **XeSS** when corresponding plugins are available (`DemosUpscaler`) |
+| **Temporal upscaling** | Unreal **TSR** |
 | **Capture & logging** | In-engine CSV exports (`FMotionLogger`, `FPerfLogger`) under `demos/Saved/Logs/` |
 | **Offline analysis** | **Python 3** — **pandas**, **NumPy**; **Matplotlib** for charts and paper figures; **SciPy** and **scikit-learn** for motion analysis helpers; `analysis/run_analysis.ps1` for scripted runs |
 | **Docs & presentations** | Markdown (reports, research docs); **Marp** for slide PDFs (`docs/FP/`) |
